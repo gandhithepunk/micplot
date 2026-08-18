@@ -1,0 +1,19 @@
+services:
+  mic-plot:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Set a real password to require crew login. Leave blank/unset to
+      # run with no auth (fine on a trusted local network).
+      APP_PASSWORD: ${APP_PASSWORD:-}
+      DATABASE_PATH: /app/data/mic-plot.db
+      PHOTOS_DIR: /app/photos
+    volumes:
+      - mic-plot-data:/app/data
+      - mic-plot-photos:/app/photos
+    restart: unless-stopped
+
+volumes:
+  mic-plot-data:
+  mic-plot-photos:
