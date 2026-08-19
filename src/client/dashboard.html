@@ -762,7 +762,7 @@
         <span class="card-mic-id">${m.micId}</span>
         <span class="pill ${pillClass}">${pillLabel}</span>
       </div>
-      <div class="card-performer ${m.performer ? '' : 'empty'}">${m.performer || 'No performer'}${allergyDot}</div>
+      <div class="card-performer ${m.performer ? '' : 'empty'}">${m.performer || 'No performer'}${m.character ? ` <em style="color:var(--text-muted);font-weight:400">${m.character}</em>` : ''}${allergyDot}</div>
       <div class="card-pronouns">${m.pronouns || ''}</div>
     `;
     div.addEventListener('click', () => openDetail(m.micId));
