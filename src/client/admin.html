@@ -272,10 +272,86 @@
     .setup-msg { margin-top: 0.5rem; font-size: 0.78rem; min-height: 1em; }
     .setup-msg.success { color: var(--green); }
     .setup-msg.error { color: var(--red); }
+
+    /* ── PIN overlay ── */
+    .pin-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    .pin-overlay.visible { display: flex; }
+    .pin-card {
+      background: var(--card);
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 2rem 2rem 1.75rem;
+      width: 100%;
+      max-width: 320px;
+      text-align: center;
+    }
+    .pin-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 0.4rem; }
+    .pin-title { font-size: 1.4rem; font-weight: 500; margin-bottom: 1.5rem; }
+    .pin-input {
+      width: 100%;
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 1.5rem;
+      font-weight: 500;
+      letter-spacing: 0.25em;
+      padding: 0.6rem 0.75rem;
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+    .pin-input:focus { outline: none; border-color: var(--accent); }
+    .pin-input.shake {
+      animation: pin-shake 0.35s ease;
+      border-color: var(--red);
+    }
+    @keyframes pin-shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-8px); }
+      60%      { transform: translateX(8px); }
+      80%      { transform: translateX(-4px); }
+    }
+    .pin-btn {
+      width: 100%;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 500;
+      padding: 0.65rem;
+    }
+    .pin-btn:hover { opacity: 0.9; }
+    .pin-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .pin-error { color: var(--red); font-size: 0.8rem; margin-top: 0.6rem; min-height: 1em; }
   </style>
 </head>
 <body>
-<div class="page">
+
+<!-- PIN overlay (hidden when ADMIN_PIN not set or already authenticated) -->
+<div class="pin-overlay" id="pin-overlay">
+  <div class="pin-card">
+    <div class="pin-label">Mic Plot</div>
+    <div class="pin-title">Admin Access</div>
+    <input class="pin-input" id="pin-input" type="password"
+           inputmode="numeric" placeholder="••••" autocomplete="off" maxlength="8" />
+    <button class="pin-btn" id="pin-btn" type="button">Unlock</button>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<div class="page" id="admin-content" style="display:none">
 
   <div class="page-header">
     <div class="page-header-left">
@@ -340,6 +416,56 @@
     menu.classList.remove('open');
     btn.setAttribute('aria-expanded', 'false');
   });
+})();
+
+// ── Admin PIN gate ────────────────────────────────────────────────────────────
+(function () {
+  const overlay  = document.getElementById('pin-overlay');
+  const content  = document.getElementById('admin-content');
+  const pinInput = document.getElementById('pin-input');
+  const pinBtn   = document.getElementById('pin-btn');
+  const pinError = document.getElementById('pin-error');
+
+  function reveal() {
+    overlay.classList.remove('visible');
+    content.style.display = 'block';
+  }
+
+  function showOverlay() {
+    overlay.classList.add('visible');
+    content.style.display = 'none';
+    pinInput.focus();
+  }
+
+  // Check if already authenticated
+  fetch('/api/admin/check')
+    .then(r => r.ok ? reveal() : showOverlay())
+    .catch(() => showOverlay());
+
+  async function submitPin() {
+    const pin = pinInput.value.trim();
+    if (!pin) return;
+    pinBtn.disabled = true;
+    pinError.textContent = '';
+    const r = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin }),
+    });
+    pinBtn.disabled = false;
+    if (r.ok) {
+      reveal();
+    } else {
+      pinInput.value = '';
+      pinInput.classList.add('shake');
+      pinInput.addEventListener('animationend', () => pinInput.classList.remove('shake'), { once: true });
+      pinError.textContent = 'Incorrect PIN';
+      pinInput.focus();
+    }
+  }
+
+  pinBtn.addEventListener('click', submitPin);
+  pinInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
 })();
 
 (function () {

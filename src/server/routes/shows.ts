@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import { shows, micEntries, micPhotos } from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { photoStorage } from "../storage.js";
+import { requireAdminAuth } from "../auth.js";
 
 // Hardcoded until real multi-org auth exists -- see notes in db/schema.ts.
 const ORG_ID = 1;
@@ -17,7 +18,7 @@ export async function showsRoutes(app: FastifyInstance) {
   });
 
   // Admin: add a show.
-  app.post("/api/shows", async (request, reply) => {
+  app.post("/api/shows", { preHandler: requireAdminAuth }, async (request, reply) => {
     const body = request.body as { code: string; name: string };
     if (!body.code?.trim() || !body.name?.trim()) {
       return reply.code(400).send({ error: "code and name are required" });
@@ -33,7 +34,7 @@ export async function showsRoutes(app: FastifyInstance) {
   // Admin: permanently delete a show and all its mic entries + photo files.
   // Intended for archived (inactive) shows only — the admin UI enforces the
   // archive-first step, but the server doesn't block active show deletion.
-  app.delete("/api/shows/:id", async (request, reply) => {
+  app.delete("/api/shows/:id", { preHandler: requireAdminAuth }, async (request, reply) => {
     const { id } = request.params as { id: string };
 
     // Collect all mic entries so we can clean up their photo files
@@ -66,7 +67,7 @@ export async function showsRoutes(app: FastifyInstance) {
   });
 
   // Admin: rename a show or toggle active.
-  app.patch("/api/shows/:id", async (request, reply) => {
+  app.patch("/api/shows/:id", { preHandler: requireAdminAuth }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as Partial<{ code: string; name: string; active: boolean; archived: boolean }>;
     const row = db

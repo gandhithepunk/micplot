@@ -25,9 +25,12 @@ await app.register(fastifyStatic, {
   root: path.join(__dirname, "../client"),
 });
 
-// Everything under /api requires auth (a no-op if APP_PASSWORD isn't set).
+// Everything under /api requires crew auth (a no-op if APP_PASSWORD isn't set).
+// Admin-specific routes are excluded here; they enforce their own admin-PIN
+// check independently via requireAdminAuth in the route preHandler.
+const CREW_AUTH_EXCLUDED = new Set(["/api/login", "/api/admin/login", "/api/admin/check", "/api/admin/logout"]);
 app.addHook("onRequest", (request, reply, done) => {
-  if (request.url.startsWith("/api") && request.url !== "/api/login") {
+  if (request.url.startsWith("/api") && !CREW_AUTH_EXCLUDED.has(request.url.split("?")[0])) {
     return requireAuth(request, reply, done);
   }
   done();

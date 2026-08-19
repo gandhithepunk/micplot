@@ -4,6 +4,7 @@ import { micEntries, micPhotos } from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { photoStorage } from "../storage.js";
 import { broadcastShow } from "./events.js";
+import { requireAdminAuth } from "../auth.js";
 
 const ORG_ID = 1;
 
@@ -132,7 +133,7 @@ export async function micsRoutes(app: FastifyInstance) {
   // Admin: bulk-create mic stubs 01–N for a show.
   // Skips mic IDs that already exist so it's safe to call repeatedly
   // (e.g. adding more mics to a partially set-up show).
-  app.post("/api/shows/:showId/mics/bulk", async (request, reply) => {
+  app.post("/api/shows/:showId/mics/bulk", { preHandler: requireAdminAuth }, async (request, reply) => {
     const { showId } = request.params as { showId: string };
     const { count } = request.body as { count: number };
 
