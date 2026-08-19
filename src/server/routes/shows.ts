@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
-import { shows } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { shows, micEntries, micPhotos } from "../db/schema.js";
+import { and, eq } from "drizzle-orm";
+import { photoStorage } from "../storage.js";
 
 // Hardcoded until real multi-org auth exists -- see notes in db/schema.ts.
 const ORG_ID = 1;
@@ -26,6 +27,41 @@ export async function showsRoutes(app: FastifyInstance) {
       .returning()
       .get();
     return reply.code(201).send(row);
+  });
+
+  // Admin: permanently delete a show and all its mic entries + photo files.
+  // Intended for archived (inactive) shows only — the admin UI enforces the
+  // archive-first step, but the server doesn't block active show deletion.
+  app.delete("/api/shows/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    // Collect all mic entries so we can clean up their photo files
+    const entries = db
+      .select()
+      .from(micEntries)
+      .where(and(eq(micEntries.orgId, ORG_ID), eq(micEntries.showId, Number(id))))
+      .all();
+
+    for (const entry of entries) {
+      const photos = db
+        .select()
+        .from(micPhotos)
+        .where(eq(micPhotos.micEntryId, entry.id))
+        .all();
+      for (const photo of photos) {
+        await photoStorage.delete(photo.filename).catch(() => {});
+      }
+      db.delete(micEntries).where(eq(micEntries.id, entry.id)).run();
+    }
+
+    const deleted = db
+      .delete(shows)
+      .where(and(eq(shows.id, Number(id)), eq(shows.orgId, ORG_ID)))
+      .returning()
+      .get();
+    if (!deleted) return reply.code(404).send({ error: "Show not found" });
+
+    return reply.code(204).send();
   });
 
   // Admin: rename a show or toggle active.
