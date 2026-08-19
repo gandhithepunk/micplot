@@ -293,7 +293,7 @@
 
     archivedList.innerHTML = '';
     archived.forEach(s => archivedList.appendChild(makeRow(s)));
-    archivedSec.style.display = archived.length > 0 ? '' : 'none';
+    archivedSec.style.display = archived.length > 0 ? 'block' : 'none';
   }
 
   // ── Row builder ────────────────────────────────────────────────────────────
