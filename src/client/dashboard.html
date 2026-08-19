@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mic Plot — Dashboard</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --card: #141414;
+      --field: #111111;
+      --border: #2c2c2c;
+      --border-light: #3a3a3a;
+      --accent: #7a5cf0;
+      --green: #3f9e6d;
+      --red: #c25b52;
+      --text: #eaeaea;
+      --text-muted: #888888;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 500;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0.875rem 1rem;
+    }
+    .topbar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .topbar-title { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; }
+    .topbar-row select {
+      flex: 1;
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.95rem;
+      padding: 0.45rem 2rem 0.45rem 0.65rem;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23888' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+    }
+    .topbar-row select:focus { outline: none; border-color: var(--accent); }
+
+    /* ── Search + filters ── */
+    .controls {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0.875rem 1rem 0;
+    }
+    .search-input {
+      display: block;
+      width: 100%;
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 1rem;
+      padding: 0.6rem 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .search-input:focus { outline: none; border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text-muted); }
+
+    .filter-chips {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .chip {
+      border: 1px solid var(--border-light);
+      border-radius: 20px;
+      background: var(--field);
+      color: var(--text-muted);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.8rem;
+      padding: 0.3rem 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .chip.active { border-color: var(--accent); color: var(--accent); background: rgba(122,92,240,0.1); }
+    .chip.active-green { border-color: var(--green); color: var(--green); background: rgba(63,158,109,0.1); }
+
+    /* ── Card grid ── */
+    .grid-wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    @media (min-width: 600px) {
+      .card-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (min-width: 800px) {
+      .card-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .mic-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.875rem;
+      cursor: pointer;
+      position: relative;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mic-card:active { opacity: 0.75; }
+    .mic-card.checked { border-color: rgba(63,158,109,0.35); }
+    .mic-card.miced   { border-color: rgba(122,92,240,0.35); }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+    .card-mic-id { font-size: 1.6rem; line-height: 1; }
+    .pill {
+      font-size: 0.65rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0.2rem 0.55rem;
+      border-radius: 20px;
+      white-space: nowrap;
+    }
+    .pill-not-started { background: var(--field); color: var(--text-muted); border: 1px solid var(--border); }
+    .pill-miced  { background: rgba(122,92,240,0.15); color: var(--accent); border: 1px solid rgba(122,92,240,0.4); }
+    .pill-checked { background: rgba(63,158,109,0.15); color: var(--green); border: 1px solid rgba(63,158,109,0.4); }
+
+    .card-performer { font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-performer.empty { color: var(--text-muted); font-style: italic; }
+    .card-pronouns { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .card-allergy-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      background: var(--red);
+      border-radius: 50%;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+
+    .empty-state {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      padding: 3rem 0;
+      text-align: center;
+    }
+
+    /* ── Detail panel (bottom sheet) ── */
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .backdrop.visible { opacity: 1; pointer-events: all; }
+
+    .detail-panel {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      z-index: 21;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      border-radius: 14px 14px 0 0;
+      max-height: 90vh;
+      overflow-y: auto;
+      transform: translateY(100%);
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+      padding-bottom: env(safe-area-inset-bottom, 1rem);
+    }
+    .detail-panel.open { transform: translateY(0); }
+
+    .detail-inner { max-width: 580px; margin: 0 auto; padding: 1.25rem 1.25rem 1.5rem; }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.25rem;
+    }
+    .detail-mic-id { font-size: 2.25rem; line-height: 1; }
+    .btn-close {
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.85rem;
+      cursor: pointer;
+    }
+    .btn-close:hover { color: var(--text); }
+
+    /* Status toggle */
+    .status-toggle {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .status-btn {
+      flex: 1;
+      border-radius: 6px;
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.8rem;
+      padding: 0.55rem 0.25rem;
+      cursor: pointer;
+      border: 1px solid var(--border-light);
+      background: var(--field);
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .status-btn.active-ns  { border-color: var(--border-light); color: var(--text); background: var(--border); }
+    .status-btn.active-m   { border-color: rgba(122,92,240,0.5); color: var(--accent); background: rgba(122,92,240,0.12); }
+    .status-btn.active-c   { border-color: rgba(63,158,109,0.5);  color: var(--green);  background: rgba(63,158,109,0.12); }
+
+    /* Read-only fields */
+    .detail-fields { margin-bottom: 1.25rem; }
+    .detail-row {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row-label { font-size: 0.75rem; color: var(--text-muted); min-width: 90px; padding-top: 0.05rem; }
+    .detail-row-value { font-size: 0.9rem; flex: 1; }
+    .detail-row-value.allergy { color: var(--red); }
+    .detail-row-value.empty   { color: var(--text-muted); font-style: italic; }
+
+    /* Edit mode fields */
+    .edit-fields { margin-bottom: 1.25rem; }
+    .edit-field { margin-bottom: 0.875rem; }
+    .edit-field:last-child { margin-bottom: 0; }
+    .edit-field label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+    .edit-field input[type="text"],
+    .edit-field select,
+    .edit-field textarea {
+      display: block;
+      width: 100%;
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 1rem;
+      padding: 0.6rem 0.75rem;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .edit-field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23888' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2rem;
+    }
+    .edit-field input[type="text"]:focus,
+    .edit-field select:focus,
+    .edit-field textarea:focus { outline: none; border-color: var(--accent); }
+    .edit-field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+    #edit-allergy:not(:placeholder-shown) { border-color: var(--red); color: var(--red); }
+
+    /* Photos in detail */
+    .detail-photos { margin-bottom: 1.25rem; }
+    .detail-photos-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.6rem; }
+    .detail-photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+    .detail-photo-grid:empty + .no-photos { display: block; }
+    .no-photos { display: none; font-size: 0.85rem; color: var(--text-muted); }
+    .detail-photo-thumb {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--field);
+      border: 1px solid var(--border);
+    }
+    .detail-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* Detail action bar */
+    .detail-actions { display: flex; gap: 0.75rem; }
+    .btn {
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 1rem;
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+    }
+    .btn-edit  { background: var(--field); color: var(--text); border: 1px solid var(--border-light); }
+    .btn-edit:hover { border-color: var(--accent); }
+    .btn-cancel { background: var(--field); color: var(--text-muted); border: 1px solid var(--border); flex: 1; }
+    .btn-cancel:hover { color: var(--text); }
+    .btn-save-edit { background: var(--accent); color: #fff; flex: 1; }
+    .btn-save-edit:hover { opacity: 0.9; }
+    .btn-save-edit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .save-status { font-size: 0.8rem; color: var(--green); margin-top: 0.5rem; min-height: 1.1em; }
+    .save-status.error { color: var(--red); }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-row">
+    <span class="topbar-title">Mic Plot</span>
+    <select id="show-select">
+      <option value="">Select a show...</option>
+    </select>
+  </div>
+</div>
+
+<!-- Search + filters -->
+<div class="controls">
+  <input type="text" class="search-input" id="search-input" placeholder="Search performer..." />
+  <div class="filter-chips" id="filter-chips">
+    <button class="chip active" data-status="all">All</button>
+    <button class="chip" data-status="not_started">Not Started</button>
+    <button class="chip" data-status="miced">Mic'd</button>
+    <button class="chip" data-status="checked">Checked</button>
+  </div>
+</div>
+
+<!-- Card grid -->
+<div class="grid-wrap">
+  <div class="card-grid" id="card-grid"></div>
+</div>
+
+<!-- Backdrop -->
+<div class="backdrop" id="backdrop"></div>
+
+<!-- Detail panel -->
+<div class="detail-panel" id="detail-panel" aria-modal="true" role="dialog">
+  <div class="detail-inner">
+
+    <div class="detail-header">
+      <div class="detail-mic-id" id="detail-mic-id"></div>
+      <button class="btn-close" id="btn-close" type="button">Close</button>
+    </div>
+
+    <!-- Status toggle -->
+    <div class="status-toggle" id="status-toggle">
+      <button class="status-btn" data-status="not_started" type="button">Not Started</button>
+      <button class="status-btn" data-status="miced" type="button">Mic'd</button>
+      <button class="status-btn" data-status="checked" type="button">Checked</button>
+    </div>
+
+    <!-- Read-only view -->
+    <div id="view-mode">
+      <div class="detail-fields" id="detail-fields"></div>
+      <div class="detail-photos">
+        <div class="detail-photos-label">Photos</div>
+        <div class="detail-photo-grid" id="detail-photo-grid"></div>
+        <div class="no-photos">No photos</div>
+      </div>
+      <div class="detail-actions">
+        <button class="btn btn-edit" id="btn-edit" type="button">Edit</button>
+      </div>
+    </div>
+
+    <!-- Edit mode -->
+    <div id="edit-mode" style="display:none">
+      <div class="edit-fields">
+
+        <div class="edit-field">
+          <label for="edit-performer">Performer</label>
+          <input type="text" id="edit-performer" autocomplete="off" />
+        </div>
+
+        <div class="edit-field">
+          <label for="edit-pronouns-select">Pronouns</label>
+          <select id="edit-pronouns-select">
+            <option value="">—</option>
+            <option value="she/her">She/Her</option>
+            <option value="he/him">He/Him</option>
+            <option value="they/them">They/Them</option>
+            <option value="__custom__">Custom...</option>
+          </select>
+          <input type="text" id="edit-pronouns-custom" autocomplete="off"
+                 placeholder="Enter pronouns" style="display:none; margin-top:0.5rem;" />
+        </div>
+
+        <div class="edit-field">
+          <label for="edit-mic-color">Mic Color</label>
+          <select id="edit-mic-color">
+            <option value="">—</option>
+            <option value="Light Beige">Light Beige</option>
+            <option value="Tan">Tan</option>
+            <option value="Cocoa">Cocoa</option>
+            <option value="Black">Black</option>
+            <option value="White">White</option>
+          </select>
+        </div>
+
+        <div class="edit-field">
+          <label for="edit-placement">Placement</label>
+          <select id="edit-placement">
+            <option value="">—</option>
+            <option value="Hairline/Wigline">Hairline/Wigline</option>
+            <option value="Right Ear">Right Ear</option>
+            <option value="Left Ear">Left Ear</option>
+            <option value="Cheek">Cheek</option>
+            <option value="Chest">Chest</option>
+          </select>
+        </div>
+
+        <div class="edit-field">
+          <label for="edit-sensitivity">Sensitivity</label>
+          <input type="text" id="edit-sensitivity" placeholder="-6" autocomplete="off" />
+        </div>
+
+        <div class="edit-field">
+          <label for="edit-allergy">Allergy</label>
+          <input type="text" id="edit-allergy" placeholder="e.g. latex" autocomplete="off" />
+        </div>
+
+        <div class="edit-field">
+          <label for="edit-notes">Notes</label>
+          <textarea id="edit-notes"></textarea>
+        </div>
+
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn btn-cancel" id="btn-cancel" type="button">Cancel</button>
+        <button class="btn btn-save-edit" id="btn-save-edit" type="button">Save</button>
+      </div>
+      <div class="save-status" id="save-status"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  // ── State ──────────────────────────────────────────────────────────────────
+  let currentShowId  = null;
+  let mics           = [];       // raw data from last fetch
+  let searchQuery    = '';
+  let statusFilter   = 'all';
+  let detailData     = null;     // currently open mic's full data
+  let refreshTimer   = null;
+
+  const REFRESH_INTERVAL = 20000;
+
+  // ── DOM ────────────────────────────────────────────────────────────────────
+  const showSelect      = document.getElementById('show-select');
+  const searchInput     = document.getElementById('search-input');
+  const filterChips     = document.getElementById('filter-chips');
+  const cardGrid        = document.getElementById('card-grid');
+  const backdrop        = document.getElementById('backdrop');
+  const detailPanel     = document.getElementById('detail-panel');
+  const detailMicIdEl   = document.getElementById('detail-mic-id');
+  const statusToggle    = document.getElementById('status-toggle');
+  const detailFields    = document.getElementById('detail-fields');
+  const detailPhotoGrid = document.getElementById('detail-photo-grid');
+  const viewMode        = document.getElementById('view-mode');
+  const editMode        = document.getElementById('edit-mode');
+  const btnClose        = document.getElementById('btn-close');
+  const btnEdit         = document.getElementById('btn-edit');
+  const btnCancel       = document.getElementById('btn-cancel');
+  const btnSaveEdit     = document.getElementById('btn-save-edit');
+  const saveStatus      = document.getElementById('save-status');
+
+  const editProSelect   = document.getElementById('edit-pronouns-select');
+  const editProCustom   = document.getElementById('edit-pronouns-custom');
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  async function init() {
+    await loadShows();
+    const params = new URLSearchParams(location.search);
+    const showParam = params.get('show');
+    if (showParam) {
+      showSelect.value = showParam;
+      if (showSelect.value) await onShowChange(showParam);
+    }
+    startRefresh();
+  }
+
+  // ── Shows ──────────────────────────────────────────────────────────────────
+  async function loadShows() {
+    try {
+      const res = await fetch('/api/shows?active=true');
+      const shows = await res.json();
+      for (const s of shows) {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.code} — ${s.name}`;
+        showSelect.appendChild(opt);
+      }
+    } catch { /* silent */ }
+  }
+
+  showSelect.addEventListener('change', () => {
+    const v = showSelect.value;
+    if (v) onShowChange(v);
+    else {
+      currentShowId = null;
+      mics = [];
+      renderCards();
+    }
+  });
+
+  async function onShowChange(showId) {
+    currentShowId = showId;
+    await loadMics();
+  }
+
+  // ── Mics ───────────────────────────────────────────────────────────────────
+  async function loadMics() {
+    if (!currentShowId) return;
+    try {
+      const res = await fetch(`/api/shows/${currentShowId}/mics`);
+      if (!res.ok) return;
+      mics = await res.json();
+      renderCards();
+    } catch { /* silent */ }
+  }
+
+  // ── Render cards ───────────────────────────────────────────────────────────
+  function renderCards() {
+    const q = searchQuery.toLowerCase();
+    const filtered = mics.filter(m => {
+      const matchSearch = !q || (m.performer || '').toLowerCase().includes(q);
+      const matchStatus = statusFilter === 'all' || m.status === statusFilter;
+      return matchSearch && matchStatus;
+    });
+
+    // Update chip counts
+    document.querySelectorAll('.chip[data-status]').forEach(chip => {
+      const s = chip.dataset.status;
+      const count = s === 'all' ? mics.length : mics.filter(m => m.status === s).length;
+      const label = { all: 'All', not_started: 'Not Started', miced: "Mic'd", checked: 'Checked' }[s];
+      chip.textContent = `${label} ${count}`;
+    });
+
+    cardGrid.innerHTML = '';
+
+    if (!currentShowId) {
+      cardGrid.innerHTML = '<div class="empty-state">Select a show to see mics.</div>';
+      return;
+    }
+    if (filtered.length === 0) {
+      cardGrid.innerHTML = '<div class="empty-state">No mics match.</div>';
+      return;
+    }
+
+    // Sort numerically by micId
+    filtered.sort((a, b) => a.micId.localeCompare(b.micId, undefined, { numeric: true }));
+
+    for (const m of filtered) {
+      cardGrid.appendChild(makeCard(m));
+    }
+  }
+
+  function makeCard(m) {
+    const div = document.createElement('div');
+    div.className = `mic-card ${m.status}`;
+    div.dataset.micId = m.micId;
+
+    const pillClass = { not_started: 'pill-not-started', miced: 'pill-miced', checked: 'pill-checked' }[m.status];
+    const pillLabel = { not_started: 'Not Started', miced: "Mic'd", checked: 'Checked' }[m.status];
+
+    const allergyDot = m.allergy ? '<span class="card-allergy-dot" title="Allergy"></span>' : '';
+
+    div.innerHTML = `
+      <div class="card-top">
+        <span class="card-mic-id">${m.micId}</span>
+        <span class="pill ${pillClass}">${pillLabel}</span>
+      </div>
+      <div class="card-performer ${m.performer ? '' : 'empty'}">${m.performer || 'No performer'}${allergyDot}</div>
+      <div class="card-pronouns">${m.pronouns || ''}</div>
+    `;
+    div.addEventListener('click', () => openDetail(m.micId));
+    return div;
+  }
+
+  // ── Search + filter ────────────────────────────────────────────────────────
+  searchInput.addEventListener('input', () => {
+    searchQuery = searchInput.value;
+    renderCards();
+  });
+
+  filterChips.addEventListener('click', e => {
+    const chip = e.target.closest('.chip[data-status]');
+    if (!chip) return;
+    statusFilter = chip.dataset.status;
+    document.querySelectorAll('.chip').forEach(c => {
+      c.classList.remove('active', 'active-green');
+    });
+    if (statusFilter === 'checked') chip.classList.add('active-green');
+    else chip.classList.add('active');
+    renderCards();
+  });
+
+  // ── Auto-refresh ───────────────────────────────────────────────────────────
+  function startRefresh() {
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => {
+      if (document.hidden) return;
+      if (detailData !== null) return; // don't disrupt open detail
+      loadMics();
+    }, REFRESH_INTERVAL);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && currentShowId && detailData === null) {
+      loadMics();
+    }
+  });
+
+  // ── Detail panel ───────────────────────────────────────────────────────────
+  async function openDetail(micId) {
+    if (!currentShowId) return;
+    try {
+      const res = await fetch(`/api/shows/${currentShowId}/mics/${encodeURIComponent(micId)}`);
+      if (!res.ok) return;
+      detailData = await res.json();
+    } catch { return; }
+
+    renderDetail();
+    showPanel();
+  }
+
+  function renderDetail() {
+    const d = detailData;
+    detailMicIdEl.textContent = d.micId;
+
+    // Status toggle
+    updateStatusButtons(d.status);
+
+    // Read-only fields
+    const rows = [
+      ['Performer', d.performer],
+      ['Pronouns',  d.pronouns],
+      ['Mic Color', d.micColor],
+      ['Placement', d.placement],
+      ['Sensitivity', d.sensitivity],
+      ['Allergy',   d.allergy, true],
+      ['Notes',     d.notes],
+    ];
+    detailFields.innerHTML = '';
+    for (const [label, value, isAllergy] of rows) {
+      if (!value) continue;
+      const row = document.createElement('div');
+      row.className = 'detail-row';
+      const cls = isAllergy ? 'detail-row-value allergy' : 'detail-row-value';
+      row.innerHTML = `<span class="detail-row-label">${label}</span><span class="${cls}">${value}</span>`;
+      detailFields.appendChild(row);
+    }
+
+    // Photos
+    detailPhotoGrid.innerHTML = '';
+    for (const p of d.photos || []) {
+      const thumb = document.createElement('div');
+      thumb.className = 'detail-photo-thumb';
+      thumb.innerHTML = `<img src="/api/photos/${p.filename}" alt="" />`;
+      detailPhotoGrid.appendChild(thumb);
+    }
+
+    // Show correct mode
+    viewMode.style.display = '';
+    editMode.style.display = 'none';
+    saveStatus.textContent = '';
+  }
+
+  function updateStatusButtons(currentStatus) {
+    const classMap = { not_started: 'active-ns', miced: 'active-m', checked: 'active-c' };
+    statusToggle.querySelectorAll('.status-btn').forEach(btn => {
+      btn.classList.remove('active-ns', 'active-m', 'active-c');
+      if (btn.dataset.status === currentStatus) {
+        btn.classList.add(classMap[currentStatus]);
+      }
+    });
+  }
+
+  function showPanel() {
+    backdrop.classList.add('visible');
+    detailPanel.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closePanel() {
+    backdrop.classList.remove('visible');
+    detailPanel.classList.remove('open');
+    document.body.style.overflow = '';
+    detailData = null;
+    // Refresh grid now that panel is closed
+    loadMics();
+  }
+
+  btnClose.addEventListener('click', closePanel);
+  backdrop.addEventListener('click', closePanel);
+
+  // Status toggle
+  statusToggle.addEventListener('click', async e => {
+    const btn = e.target.closest('.status-btn');
+    if (!btn || !detailData) return;
+    const newStatus = btn.dataset.status;
+    if (newStatus === detailData.status) return;
+    try {
+      const res = await fetch(`/api/mics/${detailData.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) return;
+      detailData.status = newStatus;
+      updateStatusButtons(newStatus);
+      // Update card in grid without full reload
+      const card = cardGrid.querySelector(`[data-mic-id="${detailData.micId}"]`);
+      if (card) {
+        const mic = mics.find(m => m.micId === detailData.micId);
+        if (mic) { mic.status = newStatus; card.replaceWith(makeCard(mic)); }
+      }
+    } catch { /* silent */ }
+  });
+
+  // ── Edit mode ──────────────────────────────────────────────────────────────
+  const PRESET_PRONOUNS = ['', 'she/her', 'he/him', 'they/them'];
+
+  function fillEditPronouns(value) {
+    if (!value || PRESET_PRONOUNS.includes(value)) {
+      editProSelect.value = value || '';
+      editProCustom.style.display = 'none';
+      editProCustom.value = '';
+    } else {
+      editProSelect.value = '__custom__';
+      editProCustom.style.display = '';
+      editProCustom.value = value;
+    }
+  }
+
+  function getEditPronouns() {
+    if (editProSelect.value === '__custom__') return editProCustom.value;
+    return editProSelect.value;
+  }
+
+  editProSelect.addEventListener('change', () => {
+    const custom = editProSelect.value === '__custom__';
+    editProCustom.style.display = custom ? '' : 'none';
+    if (custom) editProCustom.focus();
+    else editProCustom.value = '';
+  });
+
+  btnEdit.addEventListener('click', () => {
+    const d = detailData;
+    document.getElementById('edit-performer').value   = d.performer   || '';
+    fillEditPronouns(d.pronouns || '');
+    document.getElementById('edit-mic-color').value   = d.micColor    || '';
+    document.getElementById('edit-placement').value   = d.placement   || '';
+    document.getElementById('edit-sensitivity').value = d.sensitivity || '';
+    document.getElementById('edit-allergy').value     = d.allergy     || '';
+    document.getElementById('edit-notes').value       = d.notes       || '';
+    viewMode.style.display = 'none';
+    editMode.style.display = '';
+    saveStatus.textContent = '';
+  });
+
+  btnCancel.addEventListener('click', () => {
+    editMode.style.display = 'none';
+    viewMode.style.display = '';
+    saveStatus.textContent = '';
+  });
+
+  btnSaveEdit.addEventListener('click', async () => {
+    if (!detailData || !currentShowId) return;
+    btnSaveEdit.disabled = true;
+    btnSaveEdit.textContent = 'Saving...';
+    saveStatus.textContent = '';
+    saveStatus.className = 'save-status';
+
+    const body = {
+      performer:   document.getElementById('edit-performer').value,
+      pronouns:    getEditPronouns(),
+      micColor:    document.getElementById('edit-mic-color').value,
+      placement:   document.getElementById('edit-placement').value,
+      sensitivity: document.getElementById('edit-sensitivity').value,
+      allergy:     document.getElementById('edit-allergy').value,
+      notes:       document.getElementById('edit-notes').value,
+    };
+
+    try {
+      const res = await fetch(
+        `/api/shows/${currentShowId}/mics/${encodeURIComponent(detailData.micId)}`,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+      if (!res.ok) throw new Error();
+      const updated = await res.json();
+      // Merge into detailData and re-render view
+      Object.assign(detailData, updated);
+      renderDetail();
+      saveStatus.textContent = 'Saved.';
+    } catch {
+      saveStatus.textContent = 'Save failed.';
+      saveStatus.className = 'save-status error';
+    } finally {
+      btnSaveEdit.disabled = false;
+      btnSaveEdit.textContent = 'Save';
+    }
+  });
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  init();
+}());
+</script>
+</body>
+</html>
