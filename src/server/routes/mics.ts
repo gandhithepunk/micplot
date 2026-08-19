@@ -17,6 +17,7 @@ function normalizeMicId(raw: string): string {
 
 const EDITABLE_FIELDS = [
   "performer",
+  "character",
   "pronouns",
   "micColor",
   "placement",

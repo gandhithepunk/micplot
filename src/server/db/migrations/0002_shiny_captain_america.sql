@@ -1,0 +1,1 @@
+ALTER TABLE `mic_entries` ADD `character` text DEFAULT '' NOT NULL;

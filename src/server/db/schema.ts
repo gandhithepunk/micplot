@@ -51,6 +51,7 @@ export const micEntries = sqliteTable(
     micId: text("mic_id").notNull(), // e.g. "01", "02" -- always text
 
     performer: text("performer").notNull().default(""),
+    character: text("character").notNull().default(""), // role/character name
     pronouns: text("pronouns").notNull().default(""), // preset value OR free-text custom
     micColor: text("mic_color").notNull().default(""), // Light Beige / Tan / Cocoa / Black / White
     placement: text("placement").notNull().default(""), // Hairline/Wigline / Right Ear / Left Ear

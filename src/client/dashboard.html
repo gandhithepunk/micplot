@@ -516,6 +516,11 @@
         </div>
 
         <div class="edit-field">
+          <label for="edit-character">Character</label>
+          <input type="text" id="edit-character" autocomplete="off" />
+        </div>
+
+        <div class="edit-field">
           <label for="edit-pronouns-select">Pronouns</label>
           <select id="edit-pronouns-select">
             <option value="">—</option>
@@ -835,6 +840,7 @@
     // Read-only fields
     const rows = [
       ['Performer', d.performer],
+      ['Character', d.character],
       ['Pronouns',  d.pronouns],
       ['Mic Color', d.micColor],
       ['Placement', d.placement],
@@ -942,6 +948,7 @@
 
     // Clear fields
     document.getElementById('edit-performer').value   = '';
+    document.getElementById('edit-character').value   = '';
     fillEditPronouns('');
     document.getElementById('edit-mic-color').value   = '';
     document.getElementById('edit-placement').value   = '';
@@ -998,6 +1005,7 @@
     statusToggle.style.display = 'none'; // hide while in edit form
 
     document.getElementById('edit-performer').value   = d.performer   || '';
+    document.getElementById('edit-character').value   = d.character   || '';
     fillEditPronouns(d.pronouns || '');
     document.getElementById('edit-mic-color').value   = d.micColor    || '';
     document.getElementById('edit-placement').value   = d.placement   || '';
@@ -1045,6 +1053,7 @@
 
     const body = {
       performer:   document.getElementById('edit-performer').value,
+      character:   document.getElementById('edit-character').value,
       pronouns:    getEditPronouns(),
       micColor:    document.getElementById('edit-mic-color').value,
       placement:   document.getElementById('edit-placement').value,

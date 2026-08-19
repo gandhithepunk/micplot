@@ -308,6 +308,11 @@
     </div>
 
     <div class="field">
+      <label class="field-label" for="f-character">Character</label>
+      <input type="text" id="f-character" autocomplete="off" />
+    </div>
+
+    <div class="field">
       <label class="field-label" for="f-pronouns-select">Pronouns</label>
       <select id="f-pronouns-select">
         <option value="">—</option>
@@ -421,6 +426,7 @@
 
   const fields = {
     performer:   document.getElementById('f-performer'),
+    character:   document.getElementById('f-character'),
     micColor:    document.getElementById('f-mic-color'),
     placement:   document.getElementById('f-placement'),
     sensitivity: document.getElementById('f-sensitivity'),
@@ -559,6 +565,7 @@
 
   function fillFields(data) {
     fields.performer.value   = data.performer   || '';
+    fields.character.value   = data.character   || '';
     fillPronouns(data.pronouns || '');
     fields.micColor.value    = data.micColor    || '';
     fields.placement.value   = data.placement   || '';
