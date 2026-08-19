@@ -43,12 +43,38 @@
       margin: 0 auto;
     }
     .topbar-title { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; }
-    .nav-links { display: flex; gap: 0.15rem; margin-left: 0.25rem; }
+    /* ── Hamburger nav ── */
+    .hamburger-wrap { position: relative; }
+    .hamburger-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      line-height: 1;
+      padding: 0.35rem 0.55rem;
+    }
+    .hamburger-btn:hover { color: var(--text); border-color: var(--border-light); }
+    .hamburger-menu {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 0.5rem);
+      background: var(--card);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 0.4rem;
+      min-width: 130px;
+      z-index: 100;
+    }
+    .hamburger-menu.open { display: block; }
     .nav-link {
-      font-size: 0.8rem;
+      display: block;
+      font-size: 0.875rem;
       color: var(--text-muted);
       text-decoration: none;
-      padding: 0.3rem 0.6rem;
+      padding: 0.55rem 0.75rem;
       border-radius: 5px;
       white-space: nowrap;
     }
@@ -415,11 +441,14 @@
     <select id="show-select">
       <option value="">Select a show...</option>
     </select>
-    <nav class="nav-links">
-      <a href="/dashboard.html" class="nav-link active">Dashboard</a>
-      <a href="/mic-form.html" class="nav-link">Mic Entry</a>
-      <a href="/admin.html" class="nav-link">Admin</a>
-    </nav>
+    <div class="hamburger-wrap">
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false">☰</button>
+      <nav class="hamburger-menu" id="hamburger-menu">
+        <a href="/mic-form.html" class="nav-link">Mic Entry</a>
+        <a href="/dashboard.html" class="nav-link active">Dashboard</a>
+        <a href="/admin.html" class="nav-link">Admin</a>
+      </nav>
+    </div>
   </div>
 </div>
 
@@ -563,6 +592,21 @@
 </div>
 
 <script>
+// ── Hamburger menu ───────────────────────────────────────────────────────────
+(function () {
+  const btn  = document.getElementById('hamburger-btn');
+  const menu = document.getElementById('hamburger-menu');
+  btn.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = menu.classList.toggle('open');
+    btn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', () => {
+    menu.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  });
+})();
+
 (function () {
   // ── State ──────────────────────────────────────────────────────────────────
   let currentShowId  = null;
