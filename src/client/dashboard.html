@@ -337,6 +337,62 @@
 
     .save-status { font-size: 0.8rem; color: var(--green); margin-top: 0.5rem; min-height: 1.1em; }
     .save-status.error { color: var(--red); }
+
+    /* Add Mic button */
+    .add-mic-row { margin-top: 0.75rem; }
+    .btn-add-mic {
+      background: none;
+      border: 1px dashed var(--border-light);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 0.4rem 1rem;
+      cursor: pointer;
+    }
+    .btn-add-mic:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Add-mode mic ID input in panel header */
+    .add-mic-id-input {
+      font-size: 2.25rem;
+      font-family: inherit;
+      font-weight: 500;
+      background: none;
+      border: none;
+      border-bottom: 2px solid var(--accent);
+      color: var(--text);
+      padding: 0 0 0.1rem 0;
+      width: 7rem;
+      line-height: 1;
+    }
+    .add-mic-id-input:focus { outline: none; }
+    .add-mic-id-input::placeholder { color: var(--border); }
+
+    /* Delete */
+    .delete-section {
+      margin-top: 1.25rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--border);
+    }
+    .btn-delete-mic {
+      width: 100%;
+      background: none;
+      border: 1px solid rgba(194,91,82,0.4);
+      border-radius: 6px;
+      color: var(--red);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 0.6rem 1rem;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn-delete-mic:hover { background: rgba(194,91,82,0.08); }
+    .delete-confirm-msg { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+    .btn-cancel-delete { background: var(--field); color: var(--text-muted); border: 1px solid var(--border); flex: 1; }
+    .btn-confirm-delete { background: var(--red); color: #fff; border: none; flex: 1; }
+    .btn-confirm-delete:hover { opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -360,6 +416,9 @@
     <button class="chip" data-status="miced">Mic'd</button>
     <button class="chip" data-status="checked">Checked</button>
   </div>
+  <div class="add-mic-row">
+    <button class="btn-add-mic" id="btn-add-mic" type="button" style="display:none">+ Add Mic</button>
+  </div>
 </div>
 
 <!-- Card grid -->
@@ -376,6 +435,9 @@
 
     <div class="detail-header">
       <div class="detail-mic-id" id="detail-mic-id"></div>
+      <input type="text" id="add-mic-id-input" class="add-mic-id-input"
+             placeholder="Mic ID" autocomplete="off" inputmode="text"
+             style="display:none" />
       <button class="btn-close" id="btn-close" type="button">Close</button>
     </div>
 
@@ -467,6 +529,18 @@
         <button class="btn btn-save-edit" id="btn-save-edit" type="button">Save</button>
       </div>
       <div class="save-status" id="save-status"></div>
+
+      <!-- Delete (hidden in add mode) -->
+      <div class="delete-section" id="delete-section" style="display:none">
+        <div id="delete-confirm" style="display:none">
+          <p class="delete-confirm-msg" id="delete-confirm-msg"></p>
+          <div class="detail-actions">
+            <button class="btn btn-cancel-delete" id="btn-cancel-delete" type="button">Cancel</button>
+            <button class="btn btn-confirm-delete" id="btn-confirm-delete" type="button">Delete</button>
+          </div>
+        </div>
+        <button class="btn-delete-mic" id="btn-delete-mic" type="button">Delete Mic</button>
+      </div>
     </div>
 
   </div>
@@ -480,6 +554,7 @@
   let searchQuery    = '';
   let statusFilter   = 'all';
   let detailData     = null;     // currently open mic's full data
+  let addMode        = false;    // panel open for new entry (no existing detailData)
   let evtSource      = null;     // active EventSource connection
   let sseConnected   = false;    // tracks reconnects for catch-up reload
 
@@ -502,8 +577,16 @@
   const btnSaveEdit     = document.getElementById('btn-save-edit');
   const saveStatus      = document.getElementById('save-status');
 
-  const editProSelect   = document.getElementById('edit-pronouns-select');
-  const editProCustom   = document.getElementById('edit-pronouns-custom');
+  const editProSelect     = document.getElementById('edit-pronouns-select');
+  const editProCustom     = document.getElementById('edit-pronouns-custom');
+  const btnAddMic         = document.getElementById('btn-add-mic');
+  const addMicIdInput     = document.getElementById('add-mic-id-input');
+  const deleteSection     = document.getElementById('delete-section');
+  const deleteConfirm     = document.getElementById('delete-confirm');
+  const deleteConfirmMsg  = document.getElementById('delete-confirm-msg');
+  const btnDeleteMic      = document.getElementById('btn-delete-mic');
+  const btnCancelDelete   = document.getElementById('btn-cancel-delete');
+  const btnConfirmDelete  = document.getElementById('btn-confirm-delete');
 
   // ── Init ───────────────────────────────────────────────────────────────────
   async function init() {
@@ -512,7 +595,10 @@
     const showParam = params.get('show');
     if (showParam) {
       showSelect.value = showParam;
-      if (showSelect.value) await onShowChange(showParam);
+      if (showSelect.value) {
+        await onShowChange(showParam);
+        btnAddMic.style.display = '';
+      }
     }
   }
 
@@ -532,11 +618,14 @@
 
   showSelect.addEventListener('change', () => {
     const v = showSelect.value;
-    if (v) onShowChange(v);
-    else {
+    if (v) {
+      onShowChange(v);
+      btnAddMic.style.display = '';
+    } else {
       currentShowId = null;
       mics = [];
       renderCards();
+      btnAddMic.style.display = 'none';
     }
   });
 
@@ -712,7 +801,11 @@
       detailPhotoGrid.appendChild(thumb);
     }
 
-    // Show correct mode
+    // Restore header + status toggle for view mode
+    detailMicIdEl.style.display = '';
+    addMicIdInput.style.display = 'none';
+    statusToggle.style.display = '';
+
     viewMode.style.display = '';
     editMode.style.display = 'none';
     saveStatus.textContent = '';
@@ -739,6 +832,7 @@
     detailPanel.classList.remove('open');
     document.body.style.overflow = '';
     detailData = null;
+    addMode = false;
     // Refresh grid now that panel is closed
     loadMics();
   }
@@ -770,6 +864,43 @@
     } catch { /* silent */ }
   });
 
+  // ── Add Mic ────────────────────────────────────────────────────────────────
+  btnAddMic.addEventListener('click', openAddPanel);
+
+  function openAddPanel() {
+    if (!currentShowId) return;
+    addMode = true;
+    detailData = null;
+
+    // Header: input instead of display
+    detailMicIdEl.style.display = 'none';
+    addMicIdInput.style.display = '';
+    addMicIdInput.value = '';
+
+    // Hide status toggle (no entry yet)
+    statusToggle.style.display = 'none';
+
+    // Clear fields
+    document.getElementById('edit-performer').value   = '';
+    fillEditPronouns('');
+    document.getElementById('edit-mic-color').value   = '';
+    document.getElementById('edit-placement').value   = '';
+    document.getElementById('edit-sensitivity').value = '';
+    document.getElementById('edit-allergy').value     = '';
+    document.getElementById('edit-notes').value       = '';
+
+    // Hide delete section (nothing to delete yet)
+    deleteSection.style.display = 'none';
+    deleteConfirm.style.display = 'none';
+
+    viewMode.style.display = 'none';
+    editMode.style.display = '';
+    saveStatus.textContent = '';
+
+    showPanel();
+    addMicIdInput.focus();
+  }
+
   // ── Edit mode ──────────────────────────────────────────────────────────────
   const PRESET_PRONOUNS = ['', 'she/her', 'he/him', 'they/them'];
 
@@ -799,6 +930,13 @@
 
   btnEdit.addEventListener('click', () => {
     const d = detailData;
+    addMode = false;
+
+    // Ensure header shows display (not input)
+    detailMicIdEl.style.display = '';
+    addMicIdInput.style.display = 'none';
+    statusToggle.style.display = 'none'; // hide while in edit form
+
     document.getElementById('edit-performer').value   = d.performer   || '';
     fillEditPronouns(d.pronouns || '');
     document.getElementById('edit-mic-color').value   = d.micColor    || '';
@@ -806,19 +944,40 @@
     document.getElementById('edit-sensitivity').value = d.sensitivity || '';
     document.getElementById('edit-allergy').value     = d.allergy     || '';
     document.getElementById('edit-notes').value       = d.notes       || '';
+
+    deleteSection.style.display = '';
+    deleteConfirm.style.display = 'none';
+
     viewMode.style.display = 'none';
     editMode.style.display = '';
     saveStatus.textContent = '';
   });
 
   btnCancel.addEventListener('click', () => {
+    if (addMode) {
+      closePanel();
+      return;
+    }
+    statusToggle.style.display = '';
+    detailMicIdEl.style.display = '';
+    addMicIdInput.style.display = 'none';
     editMode.style.display = 'none';
     viewMode.style.display = '';
     saveStatus.textContent = '';
   });
 
   btnSaveEdit.addEventListener('click', async () => {
-    if (!detailData || !currentShowId) return;
+    if (!currentShowId) return;
+    if (!addMode && !detailData) return;
+
+    const micId = addMode ? addMicIdInput.value.trim() : detailData.micId;
+    if (!micId) {
+      saveStatus.textContent = 'Enter a mic ID.';
+      saveStatus.className = 'save-status error';
+      addMicIdInput.focus();
+      return;
+    }
+
     btnSaveEdit.disabled = true;
     btnSaveEdit.textContent = 'Saving...';
     saveStatus.textContent = '';
@@ -836,13 +995,18 @@
 
     try {
       const res = await fetch(
-        `/api/shows/${currentShowId}/mics/${encodeURIComponent(detailData.micId)}`,
+        `/api/shows/${currentShowId}/mics/${encodeURIComponent(micId)}`,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
       );
       if (!res.ok) throw new Error();
       const updated = await res.json();
-      // Merge into detailData and re-render view
-      Object.assign(detailData, updated);
+
+      // Transition: switch panel to view mode for the saved entry
+      addMode = false;
+      detailData = { ...updated, photos: [] };
+      detailMicIdEl.style.display = '';
+      addMicIdInput.style.display = 'none';
+      statusToggle.style.display = '';
       renderDetail();
       saveStatus.textContent = 'Saved.';
     } catch {
@@ -851,6 +1015,33 @@
     } finally {
       btnSaveEdit.disabled = false;
       btnSaveEdit.textContent = 'Save';
+    }
+  });
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
+  btnDeleteMic.addEventListener('click', () => {
+    deleteConfirmMsg.textContent = `Delete Mic ${detailData?.micId}? This cannot be undone.`;
+    deleteConfirm.style.display = '';
+    btnDeleteMic.style.display = 'none';
+  });
+
+  btnCancelDelete.addEventListener('click', () => {
+    deleteConfirm.style.display = 'none';
+    btnDeleteMic.style.display = '';
+  });
+
+  btnConfirmDelete.addEventListener('click', async () => {
+    if (!detailData) return;
+    btnConfirmDelete.disabled = true;
+    btnConfirmDelete.textContent = 'Deleting...';
+    try {
+      const res = await fetch(`/api/mics/${detailData.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      closePanel();
+    } catch {
+      btnConfirmDelete.disabled = false;
+      btnConfirmDelete.textContent = 'Delete';
+      deleteConfirmMsg.textContent = 'Delete failed. Try again.';
     }
   });
 

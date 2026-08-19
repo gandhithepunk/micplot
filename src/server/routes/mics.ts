@@ -147,6 +147,32 @@ export async function micsRoutes(app: FastifyInstance) {
     return row;
   });
 
+  // Delete a mic entry and all its photos (files + DB rows).
+  // DB cascade handles mic_photos rows; we clean up files manually first.
+  app.delete("/api/mics/:id", async (request, reply) => {
+    const { id } = request.params as { id: string };
+
+    const photos = db
+      .select()
+      .from(micPhotos)
+      .where(eq(micPhotos.micEntryId, Number(id)))
+      .all();
+
+    const deleted = db
+      .delete(micEntries)
+      .where(eq(micEntries.id, Number(id)))
+      .returning()
+      .get();
+    if (!deleted) return reply.code(404).send({ error: "Mic entry not found" });
+
+    for (const photo of photos) {
+      await photoStorage.delete(photo.filename).catch(() => {});
+    }
+
+    broadcastShow(deleted.showId);
+    return reply.code(204).send();
+  });
+
   // Remove a single photo from an entry (individually removable, per the
   // entry-form gallery behavior).
   app.delete("/api/mics/:id/photos/:photoId", async (request, reply) => {
