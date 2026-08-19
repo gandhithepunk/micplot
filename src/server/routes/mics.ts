@@ -129,6 +129,40 @@ export async function micsRoutes(app: FastifyInstance) {
     return reply.code(201).send(row);
   });
 
+  // Admin: bulk-create mic stubs 01–N for a show.
+  // Skips mic IDs that already exist so it's safe to call repeatedly
+  // (e.g. adding more mics to a partially set-up show).
+  app.post("/api/shows/:showId/mics/bulk", async (request, reply) => {
+    const { showId } = request.params as { showId: string };
+    const { count } = request.body as { count: number };
+
+    if (!Number.isInteger(count) || count < 1 || count > 99) {
+      return reply.code(400).send({ error: "count must be a whole number between 1 and 99" });
+    }
+
+    const existing = new Set(
+      db
+        .select({ micId: micEntries.micId })
+        .from(micEntries)
+        .where(and(eq(micEntries.orgId, ORG_ID), eq(micEntries.showId, Number(showId))))
+        .all()
+        .map((r) => r.micId)
+    );
+
+    const created: string[] = [];
+    for (let i = 1; i <= count; i++) {
+      const micId = String(i).padStart(2, "0");
+      if (existing.has(micId)) continue;
+      db.insert(micEntries)
+        .values({ orgId: ORG_ID, showId: Number(showId), micId })
+        .run();
+      created.push(micId);
+    }
+
+    if (created.length > 0) broadcastShow(Number(showId));
+    return reply.code(201).send({ created: created.length, skipped: count - created.length });
+  });
+
   // Dashboard-only: instant-save status toggle, no separate save step.
   app.patch("/api/mics/:id/status", async (request, reply) => {
     const { id } = request.params as { id: string };

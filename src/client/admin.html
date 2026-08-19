@@ -181,6 +181,54 @@
 
     /* Hidden until populated */
     .optional-section { display: none; }
+
+    /* Show setup section */
+    .show-setup {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 0.875rem;
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+    }
+    .setup-count {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+    .setup-count strong { color: var(--text); }
+    .setup-form { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .setup-form input[type="number"] {
+      width: 5rem;
+      background: var(--card);
+      border: 1px solid var(--border-light);
+      border-radius: 5px;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 1rem;
+      padding: 0.45rem 0.6rem;
+      -webkit-appearance: none;
+    }
+    .setup-form input[type="number"]:focus { outline: none; border-color: var(--accent); }
+    .setup-form label { font-size: 0.85rem; color: var(--text-muted); }
+    .btn-generate {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 0.45rem 1rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-generate:hover { opacity: 0.9; }
+    .btn-generate:disabled { opacity: 0.45; cursor: not-allowed; }
+    .setup-msg { margin-top: 0.5rem; font-size: 0.78rem; min-height: 1em; }
+    .setup-msg.success { color: var(--green); }
+    .setup-msg.error { color: var(--red); }
   </style>
 </head>
 <body>
@@ -347,6 +395,7 @@
               ${isActive ? 'Active' : 'Inactive'}
             </button>
             <button class="btn-sm edit-btn" type="button">Edit</button>
+            <button class="btn-sm btn-setup" type="button">Set Up</button>
             <button class="btn-sm btn-archive" type="button">Archive</button>
           </div>
         </div>
@@ -358,19 +407,34 @@
             <button class="btn-sm btn-cancel-edit" type="button">Cancel</button>
           </div>
         </div>
+        <div class="show-setup">
+          <div class="setup-count">Loading...</div>
+          <div class="setup-form">
+            <input type="number" min="1" max="99" placeholder="16" />
+            <label>mics (01 – N)</label>
+            <button class="btn-generate" type="button">Generate</button>
+          </div>
+          <div class="setup-msg"></div>
+        </div>
         <div class="row-msg"></div>
       `;
 
-      const rowMain    = div.querySelector('.row-main');
-      const rowEdit    = div.querySelector('.row-edit');
-      const rowMsg     = div.querySelector('.row-msg');
-      const toggleBtn  = div.querySelector('.toggle-btn');
-      const editBtn    = div.querySelector('.edit-btn');
-      const archiveBtn = div.querySelector('.btn-archive');
-      const saveBtn    = div.querySelector('.btn-save-edit');
-      const cancelBtn  = div.querySelector('.btn-cancel-edit');
-      const codeInput  = div.querySelector('.edit-code-input');
-      const nameInput  = div.querySelector('.edit-name-input');
+      const rowMain     = div.querySelector('.row-main');
+      const rowEdit     = div.querySelector('.row-edit');
+      const rowMsg      = div.querySelector('.row-msg');
+      const toggleBtn   = div.querySelector('.toggle-btn');
+      const editBtn     = div.querySelector('.edit-btn');
+      const setupBtn    = div.querySelector('.btn-setup');
+      const archiveBtn  = div.querySelector('.btn-archive');
+      const saveBtn     = div.querySelector('.btn-save-edit');
+      const cancelBtn   = div.querySelector('.btn-cancel-edit');
+      const codeInput   = div.querySelector('.edit-code-input');
+      const nameInput   = div.querySelector('.edit-name-input');
+      const setupPanel  = div.querySelector('.show-setup');
+      const setupCount  = div.querySelector('.setup-count');
+      const setupInput  = div.querySelector('.setup-form input');
+      const generateBtn = div.querySelector('.btn-generate');
+      const setupMsg    = div.querySelector('.setup-msg');
 
       toggleBtn.addEventListener('click', () =>
         patch(show.id, { active: !isActive }, rowMsg, toggleBtn)
@@ -383,6 +447,7 @@
       editBtn.addEventListener('click', () => {
         rowMain.style.display = 'none';
         rowEdit.style.display = 'flex';
+        setupPanel.style.display = 'none';
         nameInput.focus();
       });
 
@@ -408,6 +473,74 @@
         } catch {
           rowMsg.textContent = 'Save failed.';
           saveBtn.disabled = false;
+        }
+      });
+
+      // Set Up toggle
+      let setupLoaded = false;
+      setupBtn.addEventListener('click', async () => {
+        const isOpen = setupPanel.style.display === 'block';
+        if (isOpen) {
+          setupPanel.style.display = 'none';
+          return;
+        }
+        rowEdit.style.display = 'none';
+        rowMain.style.display = 'flex';
+        setupPanel.style.display = 'block';
+        if (!setupLoaded) {
+          await refreshSetupCount();
+          setupLoaded = true;
+        }
+      });
+
+      async function refreshSetupCount() {
+        try {
+          const res = await fetch(`/api/shows/${show.id}/mics`);
+          const mics = await res.json();
+          const total = mics.length;
+          const assigned = mics.filter(m => m.performer).length;
+          if (total === 0) {
+            setupCount.innerHTML = 'No mics set up yet.';
+          } else {
+            setupCount.innerHTML = `<strong>${total}</strong> mic${total !== 1 ? 's' : ''} set up` +
+              (assigned > 0 ? `, <strong>${assigned}</strong> assigned` : ', none assigned yet') + '.';
+          }
+        } catch {
+          setupCount.textContent = 'Could not load mic count.';
+        }
+      }
+
+      generateBtn.addEventListener('click', async () => {
+        const count = parseInt(setupInput.value, 10);
+        if (!count || count < 1 || count > 99) {
+          setupMsg.textContent = 'Enter a number between 1 and 99.';
+          setupMsg.className = 'setup-msg error';
+          return;
+        }
+        generateBtn.disabled = true;
+        setupMsg.textContent = '';
+        try {
+          const res = await fetch(`/api/shows/${show.id}/mics/bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ count }),
+          });
+          if (!res.ok) throw new Error();
+          const { created, skipped } = await res.json();
+          await refreshSetupCount();
+          if (created > 0) {
+            setupMsg.textContent = `Created ${created} mic${created !== 1 ? 's' : ''}` +
+              (skipped > 0 ? ` (${skipped} already existed)` : '') + '.';
+            setupMsg.className = 'setup-msg success';
+          } else {
+            setupMsg.textContent = `All ${skipped} mics already exist.`;
+            setupMsg.className = 'setup-msg';
+          }
+        } catch {
+          setupMsg.textContent = 'Failed to generate mics.';
+          setupMsg.className = 'setup-msg error';
+        } finally {
+          generateBtn.disabled = false;
         }
       });
     }
