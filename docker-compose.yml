@@ -7,6 +7,8 @@ services:
       # Set a real password to require crew login. Leave blank/unset to
       # run with no auth (fine on a trusted local network).
       APP_PASSWORD: ${APP_PASSWORD:-}
+      # 4-6 digit PIN that gates the admin panel. Leave blank for open access.
+      ADMIN_PIN: ${ADMIN_PIN:-}
       DATABASE_PATH: /app/data/mic-plot.db
       PHOTOS_DIR: /app/photos
     volumes:
