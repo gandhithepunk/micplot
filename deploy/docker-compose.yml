@@ -1,0 +1,25 @@
+# Mic Plot — production deploy
+# Use this on TrueNAS or any Docker host. No source code needed.
+#
+# 1. Copy this file and .env.example to your server
+# 2. cp .env.example .env and fill in your values
+# 3. docker compose up -d
+
+services:
+  mic-plot:
+    image: ghcr.io/gandhithepunk/micplot:latest
+    ports:
+      - "3000:3000"
+    environment:
+      APP_PASSWORD: ${APP_PASSWORD:-}
+      ADMIN_PIN: ${ADMIN_PIN:-}
+      DATABASE_PATH: /app/data/mic-plot.db
+      PHOTOS_DIR: /app/photos
+    volumes:
+      - mic-plot-data:/app/data
+      - mic-plot-photos:/app/photos
+    restart: unless-stopped
+
+volumes:
+  mic-plot-data:
+  mic-plot-photos:

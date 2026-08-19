@@ -26,14 +26,28 @@ jobs:
       - name: Generate migrations (validates schema)
         run: npx drizzle-kit generate
 
-  docker-build:
+  publish:
     runs-on: ubuntu-latest
+    # Only publish on pushes to main (not on PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image (no push)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: false
-          tags: mic-plot:ci
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
