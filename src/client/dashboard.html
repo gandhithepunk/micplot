@@ -642,7 +642,10 @@
   document.addEventListener('click', () => {
     menu.classList.remove('open');
     btn.setAttribute('aria-expanded', 'false');
-    document.querySelectorAll('.pill-menu.open').forEach(el => el.classList.remove('open'));
+    document.querySelectorAll('.pill-menu.open').forEach(el => {
+      el.classList.remove('open');
+      el.closest('.mic-card').style.zIndex = '';
+    });
   });
 })();
 
@@ -812,8 +815,13 @@
     const menu = div.querySelector('.pill-menu');
     pill.addEventListener('click', e => {
       e.stopPropagation();
-      document.querySelectorAll('.pill-menu.open').forEach(el => el !== menu && el.classList.remove('open'));
+      // Close other open menus and reset their card z-index
+      document.querySelectorAll('.pill-menu.open').forEach(el => {
+        if (el !== menu) { el.classList.remove('open'); el.closest('.mic-card').style.zIndex = ''; }
+      });
+      const opening = !menu.classList.contains('open');
       menu.classList.toggle('open');
+      div.style.zIndex = opening ? '10' : '';
     });
 
     // Status option tap
@@ -822,6 +830,7 @@
         e.stopPropagation();
         const newStatus = btn.dataset.status;
         menu.classList.remove('open');
+        div.style.zIndex = '';
         if (newStatus === m.status) return;
         const res = await fetch(`/api/mics/${m.id}/status`, {
           method: 'PATCH',
