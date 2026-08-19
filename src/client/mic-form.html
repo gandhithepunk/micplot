@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mic Plot — Entry</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --card: #141414;
+      --field: #111111;
+      --border: #2c2c2c;
+      --border-light: #3a3a3a;
+      --accent: #7a5cf0;
+      --green: #3f9e6d;
+      --red: #c25b52;
+      --text: #eaeaea;
+      --text-muted: #888888;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 500;
+      min-height: 100vh;
+      padding: 1.5rem 1rem 4rem;
+    }
+    .page { max-width: 480px; margin: 0 auto; }
+
+    /* Header */
+    .header { margin-bottom: 1.5rem; }
+    .header-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+    .mic-id-display { font-size: 2.75rem; font-weight: 500; line-height: 1; }
+    .mic-id-input {
+      width: 100%;
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 2rem;
+      padding: 0.5rem 0.75rem;
+    }
+    .mic-id-input:focus { outline: none; border-color: var(--accent); }
+
+    /* Sections */
+    .section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .section-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.875rem;
+    }
+
+    /* Form fields */
+    .field { margin-bottom: 0.875rem; }
+    .field:last-child { margin-bottom: 0; }
+    .field-label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.3rem;
+    }
+    input[type="text"],
+    select,
+    textarea {
+      display: block;
+      width: 100%;
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 1rem;
+      padding: 0.6rem 0.75rem;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus { outline: none; border-color: var(--accent); }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23888' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.8rem center;
+      padding-right: 2rem;
+    }
+    textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+    /* Allergy: red styling when filled */
+    #f-allergy:not(:placeholder-shown) {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* Photo gallery */
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+    .photo-grid:empty { display: none; margin-bottom: 0; }
+    .photo-thumb {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--field);
+      border: 1px solid var(--border);
+    }
+    .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .photo-thumb.pending { opacity: 0.55; }
+    .remove-photo {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 22px;
+      height: 22px;
+      background: rgba(0, 0, 0, 0.72);
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 15px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+    .add-photo-btn {
+      display: block;
+      width: 100%;
+      background: var(--field);
+      border: 1px dashed var(--border-light);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 0.65rem;
+      text-align: center;
+      cursor: pointer;
+    }
+    .add-photo-btn:hover { border-color: var(--accent); color: var(--text); }
+    #photo-input { display: none; }
+
+    /* Mic switcher */
+    .switcher-row { display: flex; gap: 0.5rem; align-items: center; }
+    .switcher-row select { flex: 1; }
+    .btn-go {
+      flex-shrink: 0;
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 0.6rem 1rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .btn-go:hover { border-color: var(--accent); }
+
+    /* Actions */
+    .actions { display: flex; gap: 0.75rem; margin-top: 1.5rem; }
+    .btn {
+      flex: 1;
+      border: none;
+      border-radius: 6px;
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 1rem;
+      padding: 0.8rem;
+      cursor: pointer;
+    }
+    .btn-clear {
+      background: var(--field);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      flex: 0 0 auto;
+      padding: 0.8rem 1.5rem;
+    }
+    .btn-clear:hover { color: var(--text); border-color: var(--border-light); }
+    .btn-save { background: var(--accent); color: #fff; }
+    .btn-save:hover { opacity: 0.9; }
+    .btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Status message */
+    .status-msg {
+      margin-top: 1rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      display: none;
+    }
+    .status-msg.success {
+      background: rgba(63, 158, 109, 0.12);
+      border: 1px solid var(--green);
+      color: var(--green);
+      display: block;
+    }
+    .status-msg.error {
+      background: rgba(194, 91, 82, 0.12);
+      border: 1px solid var(--red);
+      color: var(--red);
+      display: block;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header: mic ID -->
+  <div class="header">
+    <div class="header-label">Mic Plot</div>
+    <div class="mic-id-display" id="mic-id-display" style="display:none"></div>
+    <input type="text" class="mic-id-input" id="mic-id-input"
+           placeholder="Mic ID (e.g. 07)" autocomplete="off"
+           inputmode="text" style="display:none" />
+  </div>
+
+  <!-- Show picker -->
+  <div class="section">
+    <div class="section-label">Show</div>
+    <select id="show-select">
+      <option value="">Select a show...</option>
+    </select>
+  </div>
+
+  <!-- Mic switcher (hidden until a show with entries is loaded) -->
+  <div class="section" id="switcher-section" style="display:none">
+    <div class="section-label">Switch Mic</div>
+    <div class="switcher-row">
+      <select id="switcher-select">
+        <option value="">Select mic...</option>
+      </select>
+      <button class="btn-go" id="switcher-go" type="button">Go</button>
+    </div>
+  </div>
+
+  <!-- Entry fields -->
+  <div class="section">
+    <div class="section-label">Entry</div>
+
+    <div class="field">
+      <label class="field-label" for="f-performer">Performer</label>
+      <input type="text" id="f-performer" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="f-pronouns-select">Pronouns</label>
+      <select id="f-pronouns-select">
+        <option value="">—</option>
+        <option value="she/her">She/Her</option>
+        <option value="he/him">He/Him</option>
+        <option value="they/them">They/Them</option>
+        <option value="__custom__">Custom...</option>
+      </select>
+      <input type="text" id="f-pronouns-custom" autocomplete="off"
+             placeholder="Enter pronouns"
+             style="display:none; margin-top:0.5rem;" />
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="f-mic-color">Mic Color</label>
+      <select id="f-mic-color">
+        <option value="">—</option>
+        <option value="Light Beige">Light Beige</option>
+        <option value="Tan">Tan</option>
+        <option value="Cocoa">Cocoa</option>
+        <option value="Black">Black</option>
+        <option value="White">White</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="f-placement">Placement</label>
+      <select id="f-placement">
+        <option value="">—</option>
+        <option value="Hairline/Wigline">Hairline/Wigline</option>
+        <option value="Right Ear">Right Ear</option>
+        <option value="Left Ear">Left Ear</option>
+        <option value="Cheek">Cheek</option>
+        <option value="Chest">Chest</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="f-sensitivity">Sensitivity</label>
+      <input type="text" id="f-sensitivity" placeholder="-6" autocomplete="off" inputmode="text" />
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="f-allergy">Allergy</label>
+      <input type="text" id="f-allergy" placeholder="e.g. latex" autocomplete="off" />
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="f-notes">Notes</label>
+      <textarea id="f-notes"></textarea>
+    </div>
+  </div>
+
+  <!-- Photos -->
+  <div class="section">
+    <div class="section-label">Photos</div>
+    <div class="photo-grid" id="photo-grid"></div>
+    <button class="add-photo-btn" id="add-photo-btn" type="button">Add Photo</button>
+    <input type="file" id="photo-input" accept="image/*" multiple />
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-clear" id="btn-clear" type="button">Clear</button>
+    <button class="btn btn-save" id="btn-save" type="button">Save</button>
+  </div>
+
+  <div class="status-msg" id="status-msg"></div>
+
+</div>
+<script>
+(function () {
+  // ── State ──────────────────────────────────────────────────────────────────
+  let currentShowId = null;
+  let currentMicId  = '';
+  let currentEntryId = null; // null until a DB row exists for this show+mic
+  let savedPhotos   = [];    // [{id, filename}] already in DB
+  let pendingPhotos = [];    // File[] queued but not yet uploaded
+
+  // ── DOM refs ───────────────────────────────────────────────────────────────
+  const micIdDisplay  = document.getElementById('mic-id-display');
+  const micIdInput    = document.getElementById('mic-id-input');
+  const showSelect    = document.getElementById('show-select');
+  const photoGrid     = document.getElementById('photo-grid');
+  const addPhotoBtn   = document.getElementById('add-photo-btn');
+  const photoInput    = document.getElementById('photo-input');
+  const switcherSec   = document.getElementById('switcher-section');
+  const switcherSel   = document.getElementById('switcher-select');
+  const switcherGo    = document.getElementById('switcher-go');
+  const btnClear      = document.getElementById('btn-clear');
+  const btnSave       = document.getElementById('btn-save');
+  const statusMsg     = document.getElementById('status-msg');
+
+  const pronounsSelect = document.getElementById('f-pronouns-select');
+  const pronounsCustom = document.getElementById('f-pronouns-custom');
+
+  const fields = {
+    performer:   document.getElementById('f-performer'),
+    micColor:    document.getElementById('f-mic-color'),
+    placement:   document.getElementById('f-placement'),
+    sensitivity: document.getElementById('f-sensitivity'),
+    allergy:     document.getElementById('f-allergy'),
+    notes:       document.getElementById('f-notes'),
+  };
+
+  // Show/hide custom pronouns input based on select value
+  pronounsSelect.addEventListener('change', () => {
+    const custom = pronounsSelect.value === '__custom__';
+    pronounsCustom.style.display = custom ? '' : 'none';
+    if (custom) pronounsCustom.focus();
+    else pronounsCustom.value = '';
+  });
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  async function init() {
+    const params = new URLSearchParams(location.search);
+    currentMicId = params.get('mic') || '';
+
+    if (currentMicId) {
+      micIdDisplay.textContent = currentMicId;
+      micIdDisplay.style.display = '';
+      document.title = `Mic ${currentMicId} — Mic Plot`;
+    } else {
+      micIdInput.style.display = '';
+      micIdInput.focus();
+    }
+
+    await loadShows();
+
+    const showParam = params.get('show');
+    if (showParam) {
+      showSelect.value = showParam;
+      if (showSelect.value) await onShowChange(showParam);
+    }
+  }
+
+  // ── Shows ──────────────────────────────────────────────────────────────────
+  async function loadShows() {
+    try {
+      const res = await fetch('/api/shows?active=true');
+      if (!res.ok) throw new Error();
+      const shows = await res.json();
+      for (const show of shows) {
+        const opt = document.createElement('option');
+        opt.value = show.id;
+        opt.textContent = `${show.code} — ${show.name}`;
+        showSelect.appendChild(opt);
+      }
+    } catch {
+      showStatus('Could not load shows.', 'error');
+    }
+  }
+
+  showSelect.addEventListener('change', () => {
+    const v = showSelect.value;
+    if (v) {
+      onShowChange(v);
+    } else {
+      currentShowId = null;
+      currentEntryId = null;
+      clearFields();
+      savedPhotos = [];
+      pendingPhotos = [];
+      rebuildPhotoGrid();
+      switcherSec.style.display = 'none';
+    }
+  });
+
+  async function onShowChange(showId) {
+    currentShowId = showId;
+    clearStatus();
+    const mic = getMicId();
+    await Promise.all([
+      loadSwitcher(showId, mic),
+      mic ? loadEntry(showId, mic) : Promise.resolve(),
+    ]);
+  }
+
+  // ── Mic ID helper (URL param or inline input) ──────────────────────────────
+  function getMicId() {
+    return currentMicId || micIdInput.value.trim();
+  }
+
+  // ── Entry load / fill ──────────────────────────────────────────────────────
+  async function loadEntry(showId, micId) {
+    try {
+      const res = await fetch(`/api/shows/${showId}/mics/${encodeURIComponent(micId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        currentEntryId = data.id;
+        fillFields(data);
+        savedPhotos = data.photos || [];
+        pendingPhotos = [];
+        rebuildPhotoGrid();
+      } else {
+        currentEntryId = null;
+        clearFields();
+        savedPhotos = [];
+        pendingPhotos = [];
+        rebuildPhotoGrid();
+      }
+    } catch {
+      currentEntryId = null;
+      clearFields();
+      savedPhotos = [];
+      pendingPhotos = [];
+      rebuildPhotoGrid();
+    }
+  }
+
+  const PRESET_PRONOUNS = ['', 'she/her', 'he/him', 'they/them'];
+
+  function fillPronouns(value) {
+    if (!value) {
+      pronounsSelect.value = '';
+      pronounsCustom.style.display = 'none';
+      pronounsCustom.value = '';
+    } else if (PRESET_PRONOUNS.includes(value)) {
+      pronounsSelect.value = value;
+      pronounsCustom.style.display = 'none';
+      pronounsCustom.value = '';
+    } else {
+      pronounsSelect.value = '__custom__';
+      pronounsCustom.style.display = '';
+      pronounsCustom.value = value;
+    }
+  }
+
+  function getPronouns() {
+    if (pronounsSelect.value === '__custom__') return pronounsCustom.value;
+    if (pronounsSelect.value === '') return '';
+    return pronounsSelect.value;
+  }
+
+  function fillFields(data) {
+    fields.performer.value   = data.performer   || '';
+    fillPronouns(data.pronouns || '');
+    fields.micColor.value    = data.micColor    || '';
+    fields.placement.value   = data.placement   || '';
+    fields.sensitivity.value = data.sensitivity || '';
+    fields.allergy.value     = data.allergy     || '';
+    fields.notes.value       = data.notes       || '';
+  }
+
+  function clearFields() {
+    for (const el of Object.values(fields)) el.value = '';
+    fillPronouns('');
+  }
+
+  // ── Photos ─────────────────────────────────────────────────────────────────
+  function rebuildPhotoGrid() {
+    photoGrid.innerHTML = '';
+
+    for (const p of savedPhotos) {
+      const thumb = makeThumb(`/api/photos/${p.filename}`, false);
+      thumb.querySelector('.remove-photo').addEventListener('click', () => deletePhoto(p.id));
+      photoGrid.appendChild(thumb);
+    }
+
+    for (let i = 0; i < pendingPhotos.length; i++) {
+      const url = URL.createObjectURL(pendingPhotos[i]);
+      const thumb = makeThumb(url, true);
+      const idx = i;
+      thumb.querySelector('.remove-photo').addEventListener('click', () => {
+        URL.revokeObjectURL(url);
+        pendingPhotos.splice(idx, 1);
+        rebuildPhotoGrid();
+      });
+      photoGrid.appendChild(thumb);
+    }
+  }
+
+  function makeThumb(src, pending) {
+    const div = document.createElement('div');
+    div.className = 'photo-thumb' + (pending ? ' pending' : '');
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    const btn = document.createElement('button');
+    btn.className = 'remove-photo';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Remove photo');
+    btn.textContent = '×';
+    div.appendChild(img);
+    div.appendChild(btn);
+    return div;
+  }
+
+  addPhotoBtn.addEventListener('click', () => photoInput.click());
+
+  photoInput.addEventListener('change', () => {
+    for (const file of photoInput.files) {
+      pendingPhotos.push(file);
+    }
+    photoInput.value = '';
+    rebuildPhotoGrid();
+  });
+
+  async function deletePhoto(photoId) {
+    if (!currentEntryId) return;
+    try {
+      const res = await fetch(`/api/mics/${currentEntryId}/photos/${photoId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      savedPhotos = savedPhotos.filter(p => p.id !== photoId);
+      rebuildPhotoGrid();
+    } catch {
+      showStatus('Could not delete photo.', 'error');
+    }
+  }
+
+  // ── Mic switcher ───────────────────────────────────────────────────────────
+  async function loadSwitcher(showId, currentMic) {
+    try {
+      const res = await fetch(`/api/shows/${showId}/mics/switcher`);
+      if (!res.ok) { switcherSec.style.display = 'none'; return; }
+      const mics = await res.json();
+
+      // Exclude the mic currently open
+      const others = mics.filter(m => m.micId !== currentMic);
+      switcherSel.innerHTML = '<option value="">Select mic...</option>';
+      for (const m of others) {
+        const opt = document.createElement('option');
+        opt.value = m.micId;
+        opt.textContent = m.performer ? `${m.micId} — ${m.performer}` : m.micId;
+        switcherSel.appendChild(opt);
+      }
+      switcherSec.style.display = others.length > 0 ? '' : 'none';
+    } catch {
+      switcherSec.style.display = 'none';
+    }
+  }
+
+  switcherGo.addEventListener('click', () => {
+    const micId = switcherSel.value;
+    if (!micId || !currentShowId) return;
+    const url = new URL(location.href);
+    url.searchParams.set('mic', micId);
+    url.searchParams.set('show', currentShowId);
+    location.href = url.toString();
+  });
+
+  // ── Clear ──────────────────────────────────────────────────────────────────
+  btnClear.addEventListener('click', () => {
+    clearFields();
+    pendingPhotos = [];
+    rebuildPhotoGrid();
+    clearStatus();
+  });
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+  btnSave.addEventListener('click', save);
+
+  async function save() {
+    const micId = getMicId();
+    if (!currentShowId) { showStatus('Select a show first.', 'error'); return; }
+    if (!micId)         { showStatus('Enter a mic ID first.', 'error'); return; }
+
+    btnSave.disabled = true;
+    btnSave.textContent = 'Saving...';
+    clearStatus();
+
+    const body = { pronouns: getPronouns() };
+    for (const [key, el] of Object.entries(fields)) {
+      body[key] = el.value;
+    }
+
+    try {
+      const res = await fetch(
+        `/api/shows/${currentShowId}/mics/${encodeURIComponent(micId)}`,
+        { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      currentEntryId = data.id;
+
+      // Upload any queued photos now that we have an entry id
+      if (pendingPhotos.length > 0) {
+        const fd = new FormData();
+        for (const file of pendingPhotos) fd.append('file', file);
+        const photoRes = await fetch(`/api/mics/${currentEntryId}/photos`, { method: 'POST', body: fd });
+        if (photoRes.ok) {
+          const newPhotos = await photoRes.json();
+          savedPhotos = [...savedPhotos, ...newPhotos];
+          pendingPhotos = [];
+          rebuildPhotoGrid();
+        }
+      }
+
+      // Refresh switcher — this mic now appears in the list for others
+      const mic = getMicId();
+      await loadSwitcher(currentShowId, mic);
+
+      showStatus('Saved.', 'success');
+    } catch {
+      showStatus('Save failed. Check your connection and try again.', 'error');
+    } finally {
+      btnSave.disabled = false;
+      btnSave.textContent = 'Save';
+    }
+  }
+
+  // ── Status ─────────────────────────────────────────────────────────────────
+  function showStatus(msg, type) {
+    statusMsg.textContent = msg;
+    statusMsg.className = `status-msg ${type}`;
+    if (type === 'success') setTimeout(clearStatus, 3000);
+  }
+  function clearStatus() {
+    statusMsg.className = 'status-msg';
+    statusMsg.textContent = '';
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  init();
+}());
+</script>
+</body>
+</html>
