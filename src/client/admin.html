@@ -28,9 +28,26 @@
     }
     .page { max-width: 600px; margin: 0 auto; }
 
-    .page-header { margin-bottom: 2rem; }
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+    .page-header-left {}
     .page-header-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
     .page-header h1 { font-size: 1.6rem; font-weight: 500; }
+    .nav-links { display: flex; gap: 0.15rem; }
+    .nav-link {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--text); background: var(--field); }
+    .nav-link.active { color: var(--accent); }
 
     .section {
       background: var(--card);
@@ -235,8 +252,14 @@
 <div class="page">
 
   <div class="page-header">
-    <div class="page-header-label">Mic Plot</div>
-    <h1>Admin — Shows</h1>
+    <div class="page-header-left">
+      <div class="page-header-label">Mic Plot</div>
+      <h1>Admin</h1>
+    </div>
+    <nav class="nav-links">
+      <a href="/dashboard.html" class="nav-link">Dashboard</a>
+      <a href="/admin.html" class="nav-link active">Admin</a>
+    </nav>
   </div>
 
   <!-- Add show -->

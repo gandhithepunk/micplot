@@ -103,6 +103,18 @@
       color: var(--red);
     }
 
+    /* Nav links */
+    .nav-links { display: flex; gap: 0.15rem; margin-top: 0.5rem; }
+    .nav-link {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+    }
+    .nav-link:hover { color: var(--text); background: var(--field); }
+    .nav-link.active { color: var(--accent); }
+
     /* Photo gallery */
     .photo-grid {
       display: grid;
@@ -230,6 +242,11 @@
     <input type="text" class="mic-id-input" id="mic-id-input"
            placeholder="Mic ID (e.g. 07)" autocomplete="off"
            inputmode="text" style="display:none" />
+    <nav class="nav-links">
+      <a href="/dashboard.html" class="nav-link">Dashboard</a>
+      <a href="/admin.html" class="nav-link">Admin</a>
+      <a href="/mic-form.html" class="nav-link active">Mic Entry</a>
+    </nav>
   </div>
 
   <!-- Show picker -->

@@ -43,6 +43,17 @@
       margin: 0 auto;
     }
     .topbar-title { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; }
+    .nav-links { display: flex; gap: 0.15rem; margin-left: 0.25rem; }
+    .nav-link {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      padding: 0.3rem 0.6rem;
+      border-radius: 5px;
+      white-space: nowrap;
+    }
+    .nav-link:hover { color: var(--text); background: var(--field); }
+    .nav-link.active { color: var(--accent); }
     .topbar-row select {
       flex: 1;
       background: var(--field);
@@ -404,6 +415,10 @@
     <select id="show-select">
       <option value="">Select a show...</option>
     </select>
+    <nav class="nav-links">
+      <a href="/dashboard.html" class="nav-link active">Dashboard</a>
+      <a href="/admin.html" class="nav-link">Admin</a>
+    </nav>
   </div>
 </div>
 
