@@ -8,6 +8,13 @@
       "when": 1787101228905,
       "tag": "0000_salty_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1787165318862,
+      "tag": "0001_free_silver_centurion",
+      "breakpoints": true
     }
   ]
 }

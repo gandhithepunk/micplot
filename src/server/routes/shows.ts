@@ -12,7 +12,8 @@ export async function showsRoutes(app: FastifyInstance) {
   app.get("/api/shows", async (request) => {
     const { active } = request.query as { active?: string };
     const rows = db.select().from(shows).where(eq(shows.orgId, ORG_ID)).all();
-    return active === "true" ? rows.filter((s) => s.active) : rows;
+    // ?active=true: only active, non-archived shows (for crew-facing pickers)
+    return active === "true" ? rows.filter((s) => s.active && !s.archived) : rows;
   });
 
   // Admin: add a show.
@@ -67,7 +68,7 @@ export async function showsRoutes(app: FastifyInstance) {
   // Admin: rename a show or toggle active.
   app.patch("/api/shows/:id", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as Partial<{ code: string; name: string; active: boolean }>;
+    const body = request.body as Partial<{ code: string; name: string; active: boolean; archived: boolean }>;
     const row = db
       .update(shows)
       .set(body)

@@ -26,6 +26,7 @@ export const shows = sqliteTable("shows", {
   code: text("code").notNull(), // short code, e.g. "HAM"
   name: text("name").notNull(), // display name, e.g. "Hamlet"
   active: integer("active", { mode: "boolean" }).notNull().default(true),
+  archived: integer("archived", { mode: "boolean" }).notNull().default(false),
   createdAt: text("created_at")
     .notNull()
     .default(sql`(current_timestamp)`),

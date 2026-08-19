@@ -28,14 +28,10 @@
     }
     .page { max-width: 600px; margin: 0 auto; }
 
-    /* Header */
-    .page-header {
-      margin-bottom: 2rem;
-    }
+    .page-header { margin-bottom: 2rem; }
     .page-header-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
     .page-header h1 { font-size: 1.6rem; font-weight: 500; }
 
-    /* Sections */
     .section {
       background: var(--card);
       border: 1px solid var(--border);
@@ -50,14 +46,15 @@
       color: var(--text-muted);
       margin-bottom: 1rem;
     }
+    .section-note {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.875rem;
+      line-height: 1.5;
+    }
 
     /* Add show form */
-    .add-row {
-      display: flex;
-      gap: 0.5rem;
-      align-items: flex-start;
-      flex-wrap: wrap;
-    }
+    .add-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
     .add-row input {
       background: var(--field);
       border: 1px solid var(--border-light);
@@ -86,40 +83,22 @@
     }
     .btn-add:hover { opacity: 0.9; }
     .btn-add:disabled { opacity: 0.45; cursor: not-allowed; }
-    .form-msg {
-      margin-top: 0.6rem;
-      font-size: 0.8rem;
-      min-height: 1em;
-    }
+    .form-msg { margin-top: 0.6rem; font-size: 0.8rem; min-height: 1em; }
     .form-msg.error { color: var(--red); }
     .form-msg.success { color: var(--green); }
 
-    /* Show list */
-    .shows-list { display: flex; flex-direction: column; gap: 0; }
-
-    .show-row {
-      padding: 0.75rem 0;
-      border-bottom: 1px solid var(--border);
-    }
+    /* Show rows */
+    .shows-list { display: flex; flex-direction: column; }
+    .show-row { padding: 0.75rem 0; border-bottom: 1px solid var(--border); }
     .show-row:last-child { border-bottom: none; }
-    .show-row.archived { opacity: 0.55; }
+    .show-row.dimmed { opacity: 0.6; }
 
-    /* Normal row */
-    .row-main {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .show-code {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      min-width: 3rem;
-      font-variant-numeric: tabular-nums;
-    }
+    .row-main { display: flex; align-items: center; gap: 0.75rem; }
+    .show-code { font-size: 0.75rem; color: var(--text-muted); min-width: 3rem; }
     .show-name { flex: 1; font-size: 0.95rem; }
     .row-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
 
-    /* Small action buttons */
+    /* Small buttons */
     .btn-sm {
       border-radius: 5px;
       font-family: inherit;
@@ -132,22 +111,32 @@
       background: var(--field);
       color: var(--text-muted);
     }
-    .btn-sm:hover { color: var(--text); border-color: var(--border-light); }
-    .btn-sm.archive:hover { border-color: var(--text-muted); }
-    .btn-sm.restore { color: var(--green); border-color: rgba(63,158,109,0.35); }
-    .btn-sm.restore:hover { background: rgba(63,158,109,0.08); }
-    .btn-sm.delete-show { color: var(--red); border-color: rgba(194,91,82,0.35); }
-    .btn-sm.delete-show:hover { background: rgba(194,91,82,0.08); }
-    .btn-sm.save-edit { color: var(--accent); border-color: rgba(122,92,240,0.4); }
-    .btn-sm.save-edit:hover { background: rgba(122,92,240,0.08); }
+    .btn-sm:hover { color: var(--text); }
+    .btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    /* Inline edit row */
-    .row-edit {
-      display: none;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
+    /* Toggle: shows current state, click to flip */
+    .btn-toggle-active {
+      border-color: rgba(63,158,109,0.4);
+      color: var(--green);
+      background: rgba(63,158,109,0.08);
     }
+    .btn-toggle-active:hover { background: rgba(63,158,109,0.16); }
+    .btn-toggle-inactive {
+      border-color: var(--border-light);
+      color: var(--text-muted);
+    }
+    .btn-toggle-inactive:hover { color: var(--text); }
+
+    .btn-archive:hover { border-color: var(--text-muted); color: var(--text); }
+    .btn-restore { color: var(--accent); border-color: rgba(122,92,240,0.4); }
+    .btn-restore:hover { background: rgba(122,92,240,0.08); }
+    .btn-delete-show { color: var(--red); border-color: rgba(194,91,82,0.35); }
+    .btn-delete-show:hover { background: rgba(194,91,82,0.08); }
+    .btn-save-edit { color: var(--accent); border-color: rgba(122,92,240,0.4); }
+    .btn-save-edit:hover { background: rgba(122,92,240,0.08); }
+
+    /* Inline edit */
+    .row-edit { display: none; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
     .row-edit input {
       background: var(--field);
       border: 1px solid var(--border-light);
@@ -174,49 +163,24 @@
     .confirm-msg { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 0.6rem; }
     .confirm-actions { display: flex; gap: 0.5rem; }
     .btn-confirm-cancel {
-      flex: 1;
-      background: var(--field);
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      color: var(--text-muted);
-      font-family: inherit;
-      font-weight: 500;
-      font-size: 0.82rem;
-      padding: 0.4rem;
-      cursor: pointer;
-      text-align: center;
+      flex: 1; background: var(--field); border: 1px solid var(--border);
+      border-radius: 5px; color: var(--text-muted); font-family: inherit;
+      font-weight: 500; font-size: 0.82rem; padding: 0.4rem; cursor: pointer;
     }
     .btn-confirm-delete {
-      flex: 1;
-      background: var(--red);
-      border: none;
-      border-radius: 5px;
-      color: #fff;
-      font-family: inherit;
-      font-weight: 500;
-      font-size: 0.82rem;
-      padding: 0.4rem;
-      cursor: pointer;
-      text-align: center;
+      flex: 1; background: var(--red); border: none;
+      border-radius: 5px; color: #fff; font-family: inherit;
+      font-weight: 500; font-size: 0.82rem; padding: 0.4rem; cursor: pointer;
     }
     .btn-confirm-delete:hover { opacity: 0.85; }
     .btn-confirm-delete:disabled { opacity: 0.45; cursor: not-allowed; }
 
-    .row-msg {
-      margin-top: 0.4rem;
-      font-size: 0.78rem;
-      color: var(--red);
-      min-height: 1em;
-    }
+    .row-msg { margin-top: 0.4rem; font-size: 0.78rem; color: var(--red); min-height: 1em; }
 
-    .empty-list {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      padding: 0.5rem 0;
-    }
+    .empty-list { font-size: 0.875rem; color: var(--text-muted); padding: 0.25rem 0; }
 
-    /* Archived section hidden when empty */
-    .archived-section { display: none; }
+    /* Hidden until populated */
+    .optional-section { display: none; }
   </style>
 </head>
 <body>
@@ -246,12 +210,17 @@
     </div>
   </div>
 
-  <!-- Archived shows (hidden when empty) -->
-  <div class="section archived-section" id="archived-section">
+  <!-- Inactive / prep shows -->
+  <div class="section optional-section" id="inactive-section">
+    <div class="section-label">Inactive Shows</div>
+    <div class="section-note">Not visible to crew. Toggle active when the show is ready.</div>
+    <div class="shows-list" id="inactive-list"></div>
+  </div>
+
+  <!-- Archived shows -->
+  <div class="section optional-section" id="archived-section">
     <div class="section-label">Archived Shows</div>
-    <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">
-      Archived shows are hidden from crew pickers. Deleting a show permanently removes all its mic entries and photos.
-    </p>
+    <div class="section-note">Finished shows. Deleting permanently removes all mic entries and photos.</div>
     <div class="shows-list" id="archived-list"></div>
   </div>
 
@@ -260,15 +229,17 @@
 (function () {
   let shows = [];
 
-  const activeList    = document.getElementById('active-list');
-  const archivedList  = document.getElementById('archived-list');
-  const archivedSec   = document.getElementById('archived-section');
-  const newCode       = document.getElementById('new-code');
-  const newName       = document.getElementById('new-name');
-  const btnAdd        = document.getElementById('btn-add');
-  const addMsg        = document.getElementById('add-msg');
+  const activeList   = document.getElementById('active-list');
+  const inactiveList = document.getElementById('inactive-list');
+  const archivedList = document.getElementById('archived-list');
+  const inactiveSec  = document.getElementById('inactive-section');
+  const archivedSec  = document.getElementById('archived-section');
+  const newCode      = document.getElementById('new-code');
+  const newName      = document.getElementById('new-name');
+  const btnAdd       = document.getElementById('btn-add');
+  const addMsg       = document.getElementById('add-msg');
 
-  // ── Load ──────────────────────────────────────────────────────────────────
+  // ── Load ───────────────────────────────────────────────────────────────────
   async function loadShows() {
     try {
       const res = await fetch('/api/shows');
@@ -281,58 +252,133 @@
 
   // ── Render ─────────────────────────────────────────────────────────────────
   function renderShows() {
-    const active   = shows.filter(s => s.active);
-    const archived = shows.filter(s => !s.active);
+    const active   = shows.filter(s => s.active && !s.archived);
+    const inactive = shows.filter(s => !s.active && !s.archived);
+    const archived = shows.filter(s => s.archived);
 
-    activeList.innerHTML = '';
-    if (active.length === 0) {
-      activeList.innerHTML = '<div class="empty-list">No active shows.</div>';
-    } else {
-      active.forEach(s => activeList.appendChild(makeRow(s)));
-    }
+    renderList(activeList, active, 'active');
+    renderList(inactiveList, inactive, 'inactive');
+    renderList(archivedList, archived, 'archived');
 
-    archivedList.innerHTML = '';
-    archived.forEach(s => archivedList.appendChild(makeRow(s)));
+    inactiveSec.style.display = inactive.length > 0 ? 'block' : 'none';
     archivedSec.style.display = archived.length > 0 ? 'block' : 'none';
   }
 
+  function renderList(container, items, type) {
+    container.innerHTML = '';
+    if (items.length === 0) {
+      if (type === 'active') container.innerHTML = '<div class="empty-list">No active shows.</div>';
+      return;
+    }
+    items.forEach(s => container.appendChild(makeRow(s, type)));
+  }
+
   // ── Row builder ────────────────────────────────────────────────────────────
-  function makeRow(show) {
+  function makeRow(show, type) {
     const div = document.createElement('div');
-    div.className = 'show-row' + (show.active ? '' : ' archived');
+    div.className = 'show-row' + (type !== 'active' ? ' dimmed' : '');
     div.dataset.id = show.id;
 
-    if (show.active) {
-      // Active row: Edit + Archive
+    if (type === 'archived') {
+      // Archived: Restore + Delete with confirmation
       div.innerHTML = `
         <div class="row-main">
           <span class="show-code">${esc(show.code)}</span>
           <span class="show-name">${esc(show.name)}</span>
           <div class="row-actions">
+            <button class="btn-sm btn-restore" type="button">Restore</button>
+            <button class="btn-sm btn-delete-show" type="button">Delete</button>
+          </div>
+        </div>
+        <div class="row-confirm">
+          <div class="confirm-msg">
+            Permanently delete <strong>${esc(show.name)}</strong>?
+            All mic entries and photos will be deleted. This cannot be undone.
+          </div>
+          <div class="confirm-actions">
+            <button class="btn-confirm-cancel" type="button">Cancel</button>
+            <button class="btn-confirm-delete" type="button">Delete Forever</button>
+          </div>
+        </div>
+        <div class="row-msg"></div>
+      `;
+
+      const rowMsg        = div.querySelector('.row-msg');
+      const restoreBtn    = div.querySelector('.btn-restore');
+      const deleteBtn     = div.querySelector('.btn-delete-show');
+      const rowConfirm    = div.querySelector('.row-confirm');
+      const confirmCancel = div.querySelector('.btn-confirm-cancel');
+      const confirmDelete = div.querySelector('.btn-confirm-delete');
+
+      restoreBtn.addEventListener('click', () => patch(show.id, { archived: false }, rowMsg, restoreBtn));
+
+      deleteBtn.addEventListener('click', () => {
+        rowConfirm.style.display = 'block';
+        deleteBtn.style.display = 'none';
+      });
+      confirmCancel.addEventListener('click', () => {
+        rowConfirm.style.display = 'none';
+        deleteBtn.style.display = '';
+        rowMsg.textContent = '';
+      });
+      confirmDelete.addEventListener('click', async () => {
+        confirmDelete.disabled = true;
+        confirmDelete.textContent = 'Deleting...';
+        try {
+          const res = await fetch(`/api/shows/${show.id}`, { method: 'DELETE' });
+          if (!res.ok) throw new Error();
+          await loadShows();
+        } catch {
+          confirmDelete.disabled = false;
+          confirmDelete.textContent = 'Delete Forever';
+          rowMsg.textContent = 'Delete failed.';
+        }
+      });
+
+    } else {
+      // Active or Inactive: toggle + edit + archive
+      const isActive = type === 'active';
+      div.innerHTML = `
+        <div class="row-main">
+          <span class="show-code">${esc(show.code)}</span>
+          <span class="show-name">${esc(show.name)}</span>
+          <div class="row-actions">
+            <button class="btn-sm ${isActive ? 'btn-toggle-active' : 'btn-toggle-inactive'} toggle-btn" type="button">
+              ${isActive ? 'Active' : 'Inactive'}
+            </button>
             <button class="btn-sm edit-btn" type="button">Edit</button>
-            <button class="btn-sm archive" type="button">Archive</button>
+            <button class="btn-sm btn-archive" type="button">Archive</button>
           </div>
         </div>
         <div class="row-edit">
           <input class="edit-code-input" type="text" value="${esc(show.code)}" maxlength="10" autocomplete="off" />
           <input class="edit-name-input" type="text" value="${esc(show.name)}" autocomplete="off" />
           <div class="row-actions">
-            <button class="btn-sm save-edit" type="button">Save</button>
-            <button class="btn-sm cancel-edit" type="button">Cancel</button>
+            <button class="btn-sm btn-save-edit" type="button">Save</button>
+            <button class="btn-sm btn-cancel-edit" type="button">Cancel</button>
           </div>
         </div>
         <div class="row-msg"></div>
       `;
 
-      const rowMain  = div.querySelector('.row-main');
-      const rowEdit  = div.querySelector('.row-edit');
-      const rowMsg   = div.querySelector('.row-msg');
-      const editBtn  = div.querySelector('.edit-btn');
-      const archBtn  = div.querySelector('.archive');
-      const saveBtn  = div.querySelector('.save-edit');
-      const cancelBtn = div.querySelector('.cancel-edit');
-      const codeInput = div.querySelector('.edit-code-input');
-      const nameInput = div.querySelector('.edit-name-input');
+      const rowMain    = div.querySelector('.row-main');
+      const rowEdit    = div.querySelector('.row-edit');
+      const rowMsg     = div.querySelector('.row-msg');
+      const toggleBtn  = div.querySelector('.toggle-btn');
+      const editBtn    = div.querySelector('.edit-btn');
+      const archiveBtn = div.querySelector('.btn-archive');
+      const saveBtn    = div.querySelector('.btn-save-edit');
+      const cancelBtn  = div.querySelector('.btn-cancel-edit');
+      const codeInput  = div.querySelector('.edit-code-input');
+      const nameInput  = div.querySelector('.edit-name-input');
+
+      toggleBtn.addEventListener('click', () =>
+        patch(show.id, { active: !isActive }, rowMsg, toggleBtn)
+      );
+
+      archiveBtn.addEventListener('click', () =>
+        patch(show.id, { active: false, archived: true }, rowMsg, archiveBtn)
+      );
 
       editBtn.addEventListener('click', () => {
         rowMain.style.display = 'none';
@@ -364,110 +410,36 @@
           saveBtn.disabled = false;
         }
       });
-
-      archBtn.addEventListener('click', async () => {
-        archBtn.disabled = true;
-        try {
-          await fetch(`/api/shows/${show.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ active: false }),
-          });
-          await loadShows();
-        } catch {
-          rowMsg.textContent = 'Failed to archive.';
-          archBtn.disabled = false;
-        }
-      });
-
-    } else {
-      // Archived row: Restore + Delete (with confirmation)
-      div.innerHTML = `
-        <div class="row-main">
-          <span class="show-code">${esc(show.code)}</span>
-          <span class="show-name">${esc(show.name)}</span>
-          <div class="row-actions">
-            <button class="btn-sm restore" type="button">Restore</button>
-            <button class="btn-sm delete-show" type="button">Delete</button>
-          </div>
-        </div>
-        <div class="row-confirm">
-          <div class="confirm-msg">
-            Permanently delete <strong>${esc(show.name)}</strong>?
-            All mic entries and photos for this show will be deleted. This cannot be undone.
-          </div>
-          <div class="confirm-actions">
-            <button class="btn-confirm-cancel" type="button">Cancel</button>
-            <button class="btn-confirm-delete" type="button">Delete Forever</button>
-          </div>
-        </div>
-        <div class="row-msg"></div>
-      `;
-
-      const rowMsg      = div.querySelector('.row-msg');
-      const restoreBtn  = div.querySelector('.restore');
-      const deleteBtn   = div.querySelector('.delete-show');
-      const rowConfirm  = div.querySelector('.row-confirm');
-      const confirmCancel = div.querySelector('.btn-confirm-cancel');
-      const confirmDelete = div.querySelector('.btn-confirm-delete');
-
-      restoreBtn.addEventListener('click', async () => {
-        restoreBtn.disabled = true;
-        try {
-          await fetch(`/api/shows/${show.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ active: true }),
-          });
-          await loadShows();
-        } catch {
-          rowMsg.textContent = 'Failed to restore.';
-          restoreBtn.disabled = false;
-        }
-      });
-
-      deleteBtn.addEventListener('click', () => {
-        rowConfirm.style.display = 'block';
-        deleteBtn.style.display = 'none';
-      });
-
-      confirmCancel.addEventListener('click', () => {
-        rowConfirm.style.display = 'none';
-        deleteBtn.style.display = '';
-        rowMsg.textContent = '';
-      });
-
-      confirmDelete.addEventListener('click', async () => {
-        confirmDelete.disabled = true;
-        confirmDelete.textContent = 'Deleting...';
-        try {
-          const res = await fetch(`/api/shows/${show.id}`, { method: 'DELETE' });
-          if (!res.ok) throw new Error();
-          await loadShows();
-        } catch {
-          confirmDelete.disabled = false;
-          confirmDelete.textContent = 'Delete Forever';
-          rowMsg.textContent = 'Delete failed.';
-        }
-      });
     }
 
     return div;
+  }
+
+  // ── Shared PATCH helper ────────────────────────────────────────────────────
+  async function patch(id, body, msgEl, btn) {
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch(`/api/shows/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error();
+      await loadShows();
+    } catch {
+      if (msgEl) msgEl.textContent = 'Action failed.';
+      if (btn) btn.disabled = false;
+    }
   }
 
   // ── Add show ───────────────────────────────────────────────────────────────
   async function addShow() {
     const code = newCode.value.trim();
     const name = newName.value.trim();
-
-    if (!code || !name) {
-      setAddMsg('Code and name are required.', 'error');
-      return;
-    }
+    if (!code || !name) { setAddMsg('Code and name are required.', 'error'); return; }
 
     btnAdd.disabled = true;
     setAddMsg('', '');
-
     try {
       const res = await fetch('/api/shows', {
         method: 'POST',
@@ -496,12 +468,14 @@
   }
 
   btnAdd.addEventListener('click', addShow);
-  newName.addEventListener('keydown', e => { if (e.key === 'Enter') addShow(); });
   newCode.addEventListener('keydown', e => { if (e.key === 'Enter') newName.focus(); });
+  newName.addEventListener('keydown', e => { if (e.key === 'Enter') addShow(); });
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function esc(str) {
-    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return String(str ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
