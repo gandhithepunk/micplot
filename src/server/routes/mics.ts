@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import { micEntries, micPhotos } from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { photoStorage } from "../storage.js";
+import { broadcastShow } from "./events.js";
 
 const ORG_ID = 1;
 
@@ -110,6 +111,7 @@ export async function micsRoutes(app: FastifyInstance) {
         .where(eq(micEntries.id, existing.id))
         .returning()
         .get();
+      broadcastShow(Number(showId));
       return row;
     }
 
@@ -123,6 +125,7 @@ export async function micsRoutes(app: FastifyInstance) {
       })
       .returning()
       .get();
+    broadcastShow(Number(showId));
     return reply.code(201).send(row);
   });
 
@@ -140,6 +143,7 @@ export async function micsRoutes(app: FastifyInstance) {
       .returning()
       .get();
     if (!row) return reply.code(404).send({ error: "Mic entry not found" });
+    broadcastShow(row.showId);
     return row;
   });
 

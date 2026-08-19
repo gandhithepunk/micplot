@@ -480,9 +480,8 @@
   let searchQuery    = '';
   let statusFilter   = 'all';
   let detailData     = null;     // currently open mic's full data
-  let refreshTimer   = null;
-
-  const REFRESH_INTERVAL = 20000;
+  let evtSource      = null;     // active EventSource connection
+  let sseConnected   = false;    // tracks reconnects for catch-up reload
 
   // ── DOM ────────────────────────────────────────────────────────────────────
   const showSelect      = document.getElementById('show-select');
@@ -515,7 +514,6 @@
       showSelect.value = showParam;
       if (showSelect.value) await onShowChange(showParam);
     }
-    startRefresh();
   }
 
   // ── Shows ──────────────────────────────────────────────────────────────────
@@ -545,6 +543,7 @@
   async function onShowChange(showId) {
     currentShowId = showId;
     await loadMics();
+    connectSSE(showId);
   }
 
   // ── Mics ───────────────────────────────────────────────────────────────────
@@ -634,20 +633,34 @@
     renderCards();
   });
 
-  // ── Auto-refresh ───────────────────────────────────────────────────────────
-  function startRefresh() {
-    clearInterval(refreshTimer);
-    refreshTimer = setInterval(() => {
-      if (document.hidden) return;
-      if (detailData !== null) return; // don't disrupt open detail
-      loadMics();
-    }, REFRESH_INTERVAL);
+  // ── SSE connection ─────────────────────────────────────────────────────────
+  function connectSSE(showId) {
+    if (evtSource) evtSource.close();
+    sseConnected = false;
+
+    evtSource = new EventSource(`/api/events?showId=${showId}`);
+
+    evtSource.addEventListener('open', () => {
+      if (sseConnected) {
+        // Reconnected after a drop — reload to catch anything missed
+        if (!detailData) loadMics();
+      }
+      sseConnected = true;
+    });
+
+    evtSource.addEventListener('message', (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'mics_updated' && !detailData) loadMics();
+      } catch { /* ignore malformed */ }
+    });
+
+    // EventSource auto-reconnects on error — no action needed here
   }
 
+  // Fallback: reload on tab focus (covers wake-from-sleep / SSE gap)
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && currentShowId && detailData === null) {
-      loadMics();
-    }
+    if (!document.hidden && currentShowId && !detailData) loadMics();
   });
 
   // ── Detail panel ───────────────────────────────────────────────────────────
