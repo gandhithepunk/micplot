@@ -392,6 +392,48 @@
     }
     .detail-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
+    /* Photos in edit mode */
+    .edit-photos { margin-bottom: 1.25rem; }
+    .edit-photos-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.6rem; }
+    .edit-photo-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.6rem;
+    }
+    .edit-photo-grid:empty { margin-bottom: 0; }
+    .edit-photo-thumb {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--field);
+      border: 1px solid var(--border);
+    }
+    .edit-photo-thumb.pending { opacity: 0.55; }
+    .edit-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .remove-photo {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 22px; height: 22px;
+      background: rgba(0,0,0,0.72);
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 15px; line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+    .add-photo-btn {
+      display: block; width: 100%;
+      background: var(--field);
+      border: 1px dashed var(--border-light);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-family: inherit; font-weight: 500; font-size: 0.9rem;
+      padding: 0.65rem; text-align: center; cursor: pointer;
+    }
+    .add-photo-btn:hover { border-color: var(--accent); color: var(--text); }
+
     /* Detail action bar */
     .detail-actions { display: flex; gap: 0.75rem; }
     .btn {
@@ -630,6 +672,13 @@
 
       </div>
 
+      <div class="edit-photos">
+        <div class="edit-photos-label">Photos</div>
+        <div class="edit-photo-grid" id="edit-photo-grid"></div>
+        <button class="add-photo-btn" id="edit-add-photo-btn" type="button">Add Photo</button>
+        <input type="file" id="edit-photo-input" accept="image/*" multiple style="display:none" />
+      </div>
+
       <div class="detail-actions">
         <button class="btn btn-cancel" id="btn-cancel" type="button">Cancel</button>
         <button class="btn btn-save-edit" id="btn-save-edit" type="button">Save</button>
@@ -684,14 +733,16 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
 (function () {
   // ── State ──────────────────────────────────────────────────────────────────
-  let currentShowId  = null;
-  let mics           = [];       // raw data from last fetch
-  let searchQuery    = '';
-  let statusFilter   = 'all';
-  let detailData     = null;     // currently open mic's full data
-  let addMode        = false;    // panel open for new entry (no existing detailData)
-  let evtSource      = null;     // active EventSource connection
-  let sseConnected   = false;    // tracks reconnects for catch-up reload
+  let currentShowId    = null;
+  let mics             = [];       // raw data from last fetch
+  let searchQuery      = '';
+  let statusFilter     = 'all';
+  let detailData       = null;     // currently open mic's full data
+  let addMode          = false;    // panel open for new entry (no existing detailData)
+  let evtSource        = null;     // active EventSource connection
+  let sseConnected     = false;    // tracks reconnects for catch-up reload
+  let editSavedPhotos  = [];       // [{id, filename}] already in DB
+  let editPendingPhotos = [];      // File[] queued for upload on save
 
   // ── DOM ────────────────────────────────────────────────────────────────────
   const showSelect      = document.getElementById('show-select');
@@ -706,6 +757,9 @@ document.getElementById('share-btn').addEventListener('click', e => {
   const detailPhotoGrid = document.getElementById('detail-photo-grid');
   const viewMode        = document.getElementById('view-mode');
   const editMode        = document.getElementById('edit-mode');
+  const editPhotoGrid   = document.getElementById('edit-photo-grid');
+  const editAddPhotoBtn = document.getElementById('edit-add-photo-btn');
+  const editPhotoInput  = document.getElementById('edit-photo-input');
   const btnClose        = document.getElementById('btn-close');
   const btnEdit         = document.getElementById('btn-edit');
   const btnCancel       = document.getElementById('btn-cancel');
@@ -1078,6 +1132,9 @@ document.getElementById('share-btn').addEventListener('click', e => {
     document.getElementById('edit-frequency').value   = '';
     document.getElementById('edit-sensitivity').value = '';
     document.getElementById('edit-notes').value       = '';
+    editSavedPhotos  = [];
+    editPendingPhotos = [];
+    rebuildEditPhotoGrid();
 
     // Hide delete section (nothing to delete yet)
     deleteSection.style.display = 'none';
@@ -1090,6 +1147,59 @@ document.getElementById('share-btn').addEventListener('click', e => {
     showPanel();
     addMicIdInput.focus();
   }
+
+  // ── Edit-mode photo management ─────────────────────────────────────────────
+  function rebuildEditPhotoGrid() {
+    editPhotoGrid.innerHTML = '';
+    for (const p of editSavedPhotos) {
+      const thumb = makeEditThumb(`/api/photos/${p.filename}`, false);
+      thumb.querySelector('.remove-photo').addEventListener('click', () => deleteEditPhoto(p.id));
+      editPhotoGrid.appendChild(thumb);
+    }
+    for (let i = 0; i < editPendingPhotos.length; i++) {
+      const url = URL.createObjectURL(editPendingPhotos[i]);
+      const thumb = makeEditThumb(url, true);
+      const idx = i;
+      thumb.querySelector('.remove-photo').addEventListener('click', () => {
+        URL.revokeObjectURL(url);
+        editPendingPhotos.splice(idx, 1);
+        rebuildEditPhotoGrid();
+      });
+      editPhotoGrid.appendChild(thumb);
+    }
+  }
+
+  function makeEditThumb(src, pending) {
+    const div = document.createElement('div');
+    div.className = 'edit-photo-thumb' + (pending ? ' pending' : '');
+    const img = document.createElement('img');
+    img.src = src; img.alt = '';
+    const btn = document.createElement('button');
+    btn.className = 'remove-photo';
+    btn.type = 'button';
+    btn.setAttribute('aria-label', 'Remove photo');
+    btn.textContent = '×';
+    div.appendChild(img);
+    div.appendChild(btn);
+    return div;
+  }
+
+  async function deleteEditPhoto(photoId) {
+    if (!detailData) return;
+    try {
+      const res = await fetch(`/api/mics/${detailData.id}/photos/${photoId}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      editSavedPhotos = editSavedPhotos.filter(p => p.id !== photoId);
+      rebuildEditPhotoGrid();
+    } catch { /* ignore */ }
+  }
+
+  editAddPhotoBtn.addEventListener('click', () => editPhotoInput.click());
+  editPhotoInput.addEventListener('change', () => {
+    for (const file of editPhotoInput.files) editPendingPhotos.push(file);
+    editPhotoInput.value = '';
+    rebuildEditPhotoGrid();
+  });
 
   // ── Edit mode ──────────────────────────────────────────────────────────────
   const PRESET_PRONOUNS = ['', 'she/her', 'he/him', 'they/them'];
@@ -1138,6 +1248,10 @@ document.getElementById('share-btn').addEventListener('click', e => {
     document.getElementById('edit-frequency').value   = d.frequency   || '';
     document.getElementById('edit-sensitivity').value = d.sensitivity || '';
     document.getElementById('edit-notes').value       = d.notes       || '';
+
+    editSavedPhotos  = [...(d.photos || [])];
+    editPendingPhotos = [];
+    rebuildEditPhotoGrid();
 
     deleteSection.style.display = '';
     deleteConfirm.style.display = 'none';
@@ -1199,9 +1313,25 @@ document.getElementById('share-btn').addEventListener('click', e => {
       if (!res.ok) throw new Error();
       const updated = await res.json();
 
+      // Upload any queued photos
+      let finalPhotos = [...editSavedPhotos];
+      if (editPendingPhotos.length > 0) {
+        const fd = new FormData();
+        for (const file of editPendingPhotos) fd.append('file', file);
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 30000);
+        try {
+          await fetch(`/api/mics/${updated.id}/photos`, { method: 'POST', body: fd, signal: ctrl.signal });
+        } catch { /* timed out or network error */ }
+        clearTimeout(timer);
+        editPendingPhotos = [];
+        const refreshRes = await fetch(`/api/shows/${currentShowId}/mics/${encodeURIComponent(updated.micId)}`);
+        if (refreshRes.ok) finalPhotos = (await refreshRes.json()).photos || [];
+      }
+
       // Transition: switch panel to view mode for the saved entry
       addMode = false;
-      detailData = { ...updated, photos: [] };
+      detailData = { ...updated, photos: finalPhotos };
       detailMicIdEl.style.display = '';
       addMicIdInput.style.display = 'none';
       statusToggle.style.display = '';
