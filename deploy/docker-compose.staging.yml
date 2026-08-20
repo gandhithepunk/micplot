@@ -1,0 +1,14 @@
+services:
+  micplot-staging:
+    image: ghcr.io/gandhithepunk/micplot:dev
+    ports:
+      - "3001:3000"
+    environment:
+      - APP_PASSWORD=
+      - ADMIN_PIN=
+      - DATABASE_PATH=/app/data/mic-plot.db
+      - PHOTOS_DIR=/app/photos
+    volumes:
+      - /mnt/MediaPool/applications/micplot-staging:/app/data
+      - /mnt/MediaPool/media/micplot_photos-staging:/app/photos
+    restart: unless-stopped
