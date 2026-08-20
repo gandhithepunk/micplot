@@ -281,6 +281,8 @@
         <a href="/mic-form.html" class="nav-link active">Mic Entry</a>
         <a href="/dashboard.html" class="nav-link">Dashboard</a>
         <a href="/admin.html" class="nav-link">Admin</a>
+        <div style="height:1px;background:var(--border);margin:0.25rem 0;"></div>
+        <button class="nav-link" id="share-btn" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;font-family:inherit;">Share</button>
       </nav>
     </div>
   </div>
@@ -404,6 +406,16 @@
     btn.setAttribute('aria-expanded', 'false');
   });
 })();
+
+// ── QR share ─────────────────────────────────────────────────────────────────
+document.getElementById('share-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('hamburger-menu').classList.remove('open');
+  document.getElementById('hamburger-btn').setAttribute('aria-expanded', 'false');
+  const url = encodeURIComponent(window.location.origin + '/dashboard.html');
+  document.getElementById('qr-img').src = `/qr?url=${url}`;
+  document.getElementById('qr-modal').style.display = 'flex';
+});
 
 (function () {
   // ── State ──────────────────────────────────────────────────────────────────
@@ -765,5 +777,12 @@
   init();
 }());
 </script>
+<div id="qr-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;align-items:center;justify-content:center;" onclick="this.style.display='none'">
+  <div style="background:var(--card);border:1px solid var(--border-light);border-radius:12px;padding:1.5rem;text-align:center;max-width:280px;width:90%;" onclick="event.stopPropagation()">
+    <p style="color:var(--text-muted);font-size:0.75rem;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:1rem;">Scan to open dashboard</p>
+    <img id="qr-img" src="" alt="QR Code" style="width:100%;display:block;border-radius:4px;" />
+    <button onclick="document.getElementById('qr-modal').style.display='none'" style="margin-top:1rem;width:100%;background:var(--field);border:1px solid var(--border);color:var(--text-muted);padding:0.5rem;border-radius:6px;cursor:pointer;font-size:0.875rem;font-family:inherit;">Close</button>
+  </div>
+</div>
 </body>
 </html>

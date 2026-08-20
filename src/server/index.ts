@@ -10,6 +10,7 @@ import { showsRoutes } from "./routes/shows.js";
 import { micsRoutes } from "./routes/mics.js";
 import { photosRoutes } from "./routes/photos.js";
 import { eventsRoutes } from "./routes/events.js";
+import { qrRoute } from "./routes/qr.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 3000);
@@ -43,6 +44,7 @@ await app.register(showsRoutes);
 await app.register(micsRoutes);
 await app.register(photosRoutes);
 await app.register(eventsRoutes);
+await app.register(qrRoute);
 
 app.get("/health", async () => ({ ok: true }));
 
