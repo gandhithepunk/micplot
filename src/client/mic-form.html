@@ -705,15 +705,28 @@
       const data = await res.json();
       currentEntryId = data.id;
 
-      // Upload any queued photos now that we have an entry id
+      // Upload any queued photos now that we have an entry id.
+      // Use a 30s timeout so a dropped response (e.g. via Cloudflare Tunnel)
+      // never leaves the form stuck on "Saving...". After the upload attempt
+      // (success or timeout) we reload the entry from the server so the grid
+      // reflects whatever was actually saved.
       if (pendingPhotos.length > 0) {
         const fd = new FormData();
         for (const file of pendingPhotos) fd.append('file', file);
-        const photoRes = await fetch(`/api/mics/${currentEntryId}/photos`, { method: 'POST', body: fd });
-        if (photoRes.ok) {
-          const newPhotos = await photoRes.json();
-          savedPhotos = [...savedPhotos, ...newPhotos];
-          pendingPhotos = [];
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 30000);
+        try {
+          await fetch(`/api/mics/${currentEntryId}/photos`, {
+            method: 'POST', body: fd, signal: ctrl.signal,
+          });
+        } catch { /* timed out or network error — server may still have saved */ }
+        clearTimeout(timer);
+        pendingPhotos = [];
+        // Reload to show confirmed photos
+        const refreshRes = await fetch(`/api/shows/${currentShowId}/mics/${encodeURIComponent(getMicId())}`);
+        if (refreshRes.ok) {
+          const refreshed = await refreshRes.json();
+          savedPhotos = refreshed.photos || [];
           rebuildPhotoGrid();
         }
       }
