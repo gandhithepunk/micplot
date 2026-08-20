@@ -9,12 +9,16 @@ import { requireAdminAuth } from "../auth.js";
 const ORG_ID = 1;
 
 export async function showsRoutes(app: FastifyInstance) {
+  function parseFieldConfig(raw: string | null) {
+    try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+  }
+
   // List shows. ?active=true restricts to active-only (for crew-facing pickers).
   app.get("/api/shows", async (request) => {
     const { active } = request.query as { active?: string };
     const rows = db.select().from(shows).where(eq(shows.orgId, ORG_ID)).all();
-    // ?active=true: only active, non-archived shows (for crew-facing pickers)
-    return active === "true" ? rows.filter((s) => s.active && !s.archived) : rows;
+    const filtered = active === "true" ? rows.filter((s) => s.active && !s.archived) : rows;
+    return filtered.map(s => ({ ...s, fieldConfig: parseFieldConfig(s.fieldConfig) }));
   });
 
   // Admin: add a show.
@@ -66,17 +70,34 @@ export async function showsRoutes(app: FastifyInstance) {
     return reply.code(204).send();
   });
 
-  // Admin: rename a show or toggle active.
+  // Admin: rename a show, toggle active/archived, or update field config.
   app.patch("/api/shows/:id", { preHandler: requireAdminAuth }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as Partial<{ code: string; name: string; active: boolean; archived: boolean }>;
+    const body = request.body as Partial<{
+      code: string;
+      name: string;
+      active: boolean;
+      archived: boolean;
+      fieldConfig: Record<string, boolean> | null;
+    }>;
+
+    // Explicit allowlist prevents arbitrary fields leaking into the DB.
+    const patch: Record<string, unknown> = {};
+    if (body.code     !== undefined) patch.code     = body.code;
+    if (body.name     !== undefined) patch.name     = body.name;
+    if (body.active   !== undefined) patch.active   = body.active;
+    if (body.archived !== undefined) patch.archived = body.archived;
+    if ("fieldConfig" in body) {
+      patch.fieldConfig = body.fieldConfig !== null ? JSON.stringify(body.fieldConfig) : null;
+    }
+
     const row = db
       .update(shows)
-      .set(body)
+      .set(patch)
       .where(eq(shows.id, Number(id)))
       .returning()
       .get();
     if (!row) return reply.code(404).send({ error: "Show not found" });
-    return row;
+    return { ...row, fieldConfig: parseFieldConfig(row.fieldConfig) };
   });
 }

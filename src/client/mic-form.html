@@ -315,12 +315,12 @@
       <input type="text" id="f-performer" autocomplete="off" />
     </div>
 
-    <div class="field">
+    <div class="field" id="field-character">
       <label class="field-label" for="f-character">Character</label>
       <input type="text" id="f-character" autocomplete="off" />
     </div>
 
-    <div class="field">
+    <div class="field" id="field-pronouns">
       <label class="field-label" for="f-pronouns-select">Pronouns</label>
       <select id="f-pronouns-select">
         <option value="">—</option>
@@ -334,7 +334,7 @@
              style="display:none; margin-top:0.5rem;" />
     </div>
 
-    <div class="field">
+    <div class="field" id="field-micColor">
       <label class="field-label" for="f-mic-color">Mic Color</label>
       <select id="f-mic-color">
         <option value="">—</option>
@@ -346,7 +346,7 @@
       </select>
     </div>
 
-    <div class="field">
+    <div class="field" id="field-placement">
       <label class="field-label" for="f-placement">Placement</label>
       <select id="f-placement">
         <option value="">—</option>
@@ -358,19 +358,34 @@
       </select>
     </div>
 
-    <div class="field">
+    <div class="field" id="field-sensitivity">
       <label class="field-label" for="f-sensitivity">Sensitivity</label>
       <input type="text" id="f-sensitivity" placeholder="-6" autocomplete="off" inputmode="text" />
     </div>
 
-    <div class="field">
+    <div class="field" id="field-allergy">
       <label class="field-label" for="f-allergy">Allergy</label>
       <input type="text" id="f-allergy" placeholder="e.g. latex" autocomplete="off" />
     </div>
 
-    <div class="field">
+    <div class="field" id="field-notes">
       <label class="field-label" for="f-notes">Notes</label>
       <textarea id="f-notes"></textarea>
+    </div>
+
+    <div class="field" id="field-micModel">
+      <label class="field-label" for="f-mic-model">Mic Model</label>
+      <input type="text" id="f-mic-model" placeholder="e.g. DPA 4061" autocomplete="off" />
+    </div>
+
+    <div class="field" id="field-frequency">
+      <label class="field-label" for="f-frequency">Frequency</label>
+      <input type="text" id="f-frequency" placeholder="e.g. 606.500" autocomplete="off" inputmode="decimal" />
+    </div>
+
+    <div class="field" id="field-packModel">
+      <label class="field-label" for="f-pack-model">Pack Model</label>
+      <input type="text" id="f-pack-model" placeholder="e.g. Shure ULXD1" autocomplete="off" />
     </div>
   </div>
 
@@ -424,6 +439,25 @@ document.getElementById('share-btn').addEventListener('click', e => {
   let currentEntryId = null; // null until a DB row exists for this show+mic
   let savedPhotos   = [];    // [{id, filename}] already in DB
   let pendingPhotos = [];    // File[] queued but not yet uploaded
+  let currentFieldConfig = null;
+  let loadedShows = []; // full show objects including fieldConfig
+
+  const OPTIONAL_FIELDS = [
+    'character','pronouns','micColor','placement',
+    'sensitivity','allergy','notes','micModel','frequency','packModel',
+  ];
+  function isFieldEnabled(cfg, key) {
+    if (!cfg) return true;
+    if (!(key in cfg)) return true;
+    return cfg[key] !== false;
+  }
+  function applyFieldConfig(cfg) {
+    currentFieldConfig = cfg;
+    for (const key of OPTIONAL_FIELDS) {
+      const el = document.getElementById('field-' + key);
+      if (el) el.style.display = isFieldEnabled(cfg, key) ? 'block' : 'none';
+    }
+  }
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
   const micIdDisplay  = document.getElementById('mic-id-display');
@@ -450,6 +484,9 @@ document.getElementById('share-btn').addEventListener('click', e => {
     sensitivity: document.getElementById('f-sensitivity'),
     allergy:     document.getElementById('f-allergy'),
     notes:       document.getElementById('f-notes'),
+    micModel:    document.getElementById('f-mic-model'),
+    frequency:   document.getElementById('f-frequency'),
+    packModel:   document.getElementById('f-pack-model'),
   };
 
   // Show/hide custom pronouns input based on select value
@@ -489,6 +526,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
       const res = await fetch('/api/shows?active=true');
       if (!res.ok) throw new Error();
       const shows = await res.json();
+      loadedShows = shows;
       for (const show of shows) {
         const opt = document.createElement('option');
         opt.value = show.id;
@@ -512,12 +550,15 @@ document.getElementById('share-btn').addEventListener('click', e => {
       pendingPhotos = [];
       rebuildPhotoGrid();
       switcherSec.style.display = 'none';
+      applyFieldConfig(null);
     }
   });
 
   async function onShowChange(showId) {
     currentShowId = showId;
     clearStatus();
+    const show = loadedShows.find(s => String(s.id) === String(showId));
+    applyFieldConfig(show?.fieldConfig ?? null);
     const mic = getMicId();
     await Promise.all([
       loadSwitcher(showId, mic),
@@ -590,6 +631,9 @@ document.getElementById('share-btn').addEventListener('click', e => {
     fields.sensitivity.value = data.sensitivity || '';
     fields.allergy.value     = data.allergy     || '';
     fields.notes.value       = data.notes       || '';
+    fields.micModel.value    = data.micModel    || '';
+    fields.frequency.value   = data.frequency   || '';
+    fields.packModel.value   = data.packModel   || '';
   }
 
   function clearFields() {

@@ -24,6 +24,9 @@ const EDITABLE_FIELDS = [
   "sensitivity",
   "allergy",
   "notes",
+  "micModel",
+  "frequency",
+  "packModel",
 ] as const;
 
 export async function micsRoutes(app: FastifyInstance) {

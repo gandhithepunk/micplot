@@ -42,6 +42,25 @@ if (!showCols.includes("archived")) {
   console.log("Applied missing column: shows.archived");
 }
 
+const micCols2 = (sqlite.pragma("table_info(mic_entries)") as ColInfo[]).map(c => c.name);
+if (!micCols2.includes("mic_model")) {
+  sqlite.exec("ALTER TABLE mic_entries ADD COLUMN mic_model TEXT NOT NULL DEFAULT ''");
+  console.log("Applied missing column: mic_entries.mic_model");
+}
+if (!micCols2.includes("frequency")) {
+  sqlite.exec("ALTER TABLE mic_entries ADD COLUMN frequency TEXT NOT NULL DEFAULT ''");
+  console.log("Applied missing column: mic_entries.frequency");
+}
+if (!micCols2.includes("pack_model")) {
+  sqlite.exec("ALTER TABLE mic_entries ADD COLUMN pack_model TEXT NOT NULL DEFAULT ''");
+  console.log("Applied missing column: mic_entries.pack_model");
+}
+const showCols2 = (sqlite.pragma("table_info(shows)") as ColInfo[]).map(c => c.name);
+if (!showCols2.includes("field_config")) {
+  sqlite.exec("ALTER TABLE shows ADD COLUMN field_config TEXT");
+  console.log("Applied missing column: shows.field_config");
+}
+
 // Every install needs at least one org to hang shows/mics off of.
 // This is org id 1 for a self-hosted single-org install. A future hosted
 // version would create additional orgs through a real signup flow instead.

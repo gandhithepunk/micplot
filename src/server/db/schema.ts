@@ -27,6 +27,7 @@ export const shows = sqliteTable("shows", {
   name: text("name").notNull(), // display name, e.g. "Hamlet"
   active: integer("active", { mode: "boolean" }).notNull().default(true),
   archived: integer("archived", { mode: "boolean" }).notNull().default(false),
+  fieldConfig: text("field_config"), // nullable JSON; null = all fields on (backward compat)
   createdAt: text("created_at")
     .notNull()
     .default(sql`(current_timestamp)`),
@@ -58,6 +59,9 @@ export const micEntries = sqliteTable(
     sensitivity: text("sensitivity").notNull().default(""), // dB value as free text, e.g. "-6"
     allergy: text("allergy").notNull().default(""), // flagged red in UI when non-empty
     notes: text("notes").notNull().default(""),
+    micModel: text("mic_model").notNull().default(""),   // e.g. "DPA 4061", "Countryman B3"
+    frequency: text("frequency").notNull().default(""),  // e.g. "606.500"
+    packModel: text("pack_model").notNull().default(""), // e.g. "Shure ULXD1"
 
     // Not started / Mic'd / Checked -- only ever written from the dashboard,
     // never from the mic entry form. Enforce that in the route layer, not here.

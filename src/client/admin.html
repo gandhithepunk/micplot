@@ -279,6 +279,68 @@
     .setup-msg.success { color: var(--green); }
     .setup-msg.error { color: var(--red); }
 
+    /* Field toggles */
+    .setup-divider { height: 1px; background: var(--border); margin: 0.875rem 0; }
+    .field-toggles { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+    .field-toggle-label {
+      display: flex; align-items: center; gap: 0.35rem;
+      font-size: 0.8rem; color: var(--text-muted); cursor: pointer;
+    }
+    .field-toggle-label input[type="checkbox"] {
+      accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer;
+    }
+
+    /* Spreadsheet grid */
+    .setup-grid-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-top: 0.875rem;
+    }
+    .setup-grid { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+    .setup-grid th {
+      background: var(--field);
+      color: var(--text-muted);
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 0.4rem 0.6rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .setup-grid td { border-bottom: 1px solid var(--border); padding: 0; }
+    .setup-grid tr:last-child td { border-bottom: none; }
+    .setup-grid .grid-mic-id {
+      padding: 0 0.6rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      font-size: 0.78rem;
+      min-width: 3rem;
+    }
+    .setup-grid td input {
+      background: transparent;
+      border: none;
+      border-left: 2px solid transparent;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 500;
+      padding: 0.4rem 0.6rem;
+      width: 100%;
+      min-width: 100px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .setup-grid td input:focus {
+      border-left-color: var(--accent);
+      background: rgba(122,92,240,0.06);
+    }
+    .setup-grid tr.saving td { opacity: 0.5; }
+    .setup-grid tr.saved td { background: rgba(63,158,109,0.08); }
+    .setup-grid tr.error td { background: rgba(194,91,82,0.08); }
+
     /* ── PIN overlay ── */
     .pin-overlay {
       display: none;
@@ -489,6 +551,25 @@ document.getElementById('share-btn').addEventListener('click', e => {
 (function () {
   let shows = [];
 
+  // ── Shared field config constants ──────────────────────────────────────────
+  const OPTIONAL_FIELDS = [
+    { key: 'character',    label: 'Character'   },
+    { key: 'pronouns',    label: 'Pronouns'    },
+    { key: 'micColor',    label: 'Mic Color'   },
+    { key: 'placement',   label: 'Placement'   },
+    { key: 'sensitivity', label: 'Sensitivity' },
+    { key: 'allergy',     label: 'Allergy'     },
+    { key: 'notes',       label: 'Notes'       },
+    { key: 'micModel',    label: 'Mic Model'   },
+    { key: 'frequency',   label: 'Frequency'   },
+    { key: 'packModel',   label: 'Pack Model'  },
+  ];
+  function isFieldEnabled(cfg, key) {
+    if (!cfg) return true;
+    if (!(key in cfg)) return true;
+    return cfg[key] !== false;
+  }
+
   const activeList   = document.getElementById('active-list');
   const inactiveList = document.getElementById('inactive-list');
   const archivedList = document.getElementById('archived-list');
@@ -627,26 +708,35 @@ document.getElementById('share-btn').addEventListener('click', e => {
             <button class="btn-generate" type="button">Generate</button>
           </div>
           <div class="setup-msg"></div>
+          <div class="setup-divider" style="display:none"></div>
+          <div class="field-toggles-wrap"></div>
+          <div class="setup-grid-slot"></div>
         </div>
         <div class="row-msg"></div>
       `;
 
-      const rowMain     = div.querySelector('.row-main');
-      const rowEdit     = div.querySelector('.row-edit');
-      const rowMsg      = div.querySelector('.row-msg');
-      const toggleBtn   = div.querySelector('.toggle-btn');
-      const editBtn     = div.querySelector('.edit-btn');
-      const setupBtn    = div.querySelector('.btn-setup');
-      const archiveBtn  = div.querySelector('.btn-archive');
-      const saveBtn     = div.querySelector('.btn-save-edit');
-      const cancelBtn   = div.querySelector('.btn-cancel-edit');
-      const codeInput   = div.querySelector('.edit-code-input');
-      const nameInput   = div.querySelector('.edit-name-input');
-      const setupPanel  = div.querySelector('.show-setup');
-      const setupCount  = div.querySelector('.setup-count');
-      const setupInput  = div.querySelector('.setup-form input');
-      const generateBtn = div.querySelector('.btn-generate');
-      const setupMsg    = div.querySelector('.setup-msg');
+      const rowMain          = div.querySelector('.row-main');
+      const rowEdit          = div.querySelector('.row-edit');
+      const rowMsg           = div.querySelector('.row-msg');
+      const toggleBtn        = div.querySelector('.toggle-btn');
+      const editBtn          = div.querySelector('.edit-btn');
+      const setupBtn         = div.querySelector('.btn-setup');
+      const archiveBtn       = div.querySelector('.btn-archive');
+      const saveBtn          = div.querySelector('.btn-save-edit');
+      const cancelBtn        = div.querySelector('.btn-cancel-edit');
+      const codeInput        = div.querySelector('.edit-code-input');
+      const nameInput        = div.querySelector('.edit-name-input');
+      const setupPanel       = div.querySelector('.show-setup');
+      const setupCount       = div.querySelector('.setup-count');
+      const setupInput       = div.querySelector('.setup-form input');
+      const generateBtn      = div.querySelector('.btn-generate');
+      const setupMsg         = div.querySelector('.setup-msg');
+      const setupDivider     = div.querySelector('.setup-divider');
+      const fieldTogglesWrap = div.querySelector('.field-toggles-wrap');
+      const setupGridSlot    = div.querySelector('.setup-grid-slot');
+
+      let currentMicsCache   = [];
+      let currentFieldConfig = show.fieldConfig; // null or object from API
 
       toggleBtn.addEventListener('click', () =>
         patch(show.id, { active: !isActive }, rowMsg, toggleBtn)
@@ -701,6 +791,8 @@ document.getElementById('share-btn').addEventListener('click', e => {
         setupPanel.style.display = 'block';
         if (!setupLoaded) {
           await refreshSetupCount();
+          buildToggles(currentFieldConfig);
+          setupDivider.style.display = 'block';
           setupLoaded = true;
         }
       });
@@ -709,6 +801,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
         try {
           const res = await fetch(`/api/shows/${show.id}/mics`);
           const mics = await res.json();
+          currentMicsCache = mics;
           const total = mics.length;
           const assigned = mics.filter(m => m.performer).length;
           if (total === 0) {
@@ -717,8 +810,165 @@ document.getElementById('share-btn').addEventListener('click', e => {
             setupCount.innerHTML = `<strong>${total}</strong> mic${total !== 1 ? 's' : ''} set up` +
               (assigned > 0 ? `, <strong>${assigned}</strong> assigned` : ', none assigned yet') + '.';
           }
+          buildGrid(currentFieldConfig, currentMicsCache);
         } catch {
           setupCount.textContent = 'Could not load mic count.';
+        }
+      }
+
+      function buildToggles(cfg) {
+        fieldTogglesWrap.innerHTML = '';
+        const wrap = document.createElement('div');
+        wrap.className = 'field-toggles';
+        for (const f of OPTIONAL_FIELDS) {
+          const label = document.createElement('label');
+          label.className = 'field-toggle-label';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.dataset.key = f.key;
+          cb.checked = isFieldEnabled(cfg, f.key);
+          cb.addEventListener('change', async () => {
+            const newCfg = {};
+            for (const inp of fieldTogglesWrap.querySelectorAll('input[type="checkbox"]')) {
+              newCfg[inp.dataset.key] = inp.checked;
+            }
+            try {
+              const res = await fetch(`/api/shows/${show.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fieldConfig: newCfg }),
+              });
+              if (res.ok) {
+                const updated = await res.json();
+                currentFieldConfig = updated.fieldConfig;
+                buildGrid(currentFieldConfig, currentMicsCache);
+              }
+            } catch { /* ignore */ }
+          });
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode('\u00a0' + f.label));
+          wrap.appendChild(label);
+        }
+        fieldTogglesWrap.appendChild(wrap);
+      }
+
+      function buildGrid(cfg, mics) {
+        setupGridSlot.innerHTML = '';
+        if (mics.length === 0) return;
+
+        const enabledFields = OPTIONAL_FIELDS.filter(f => isFieldEnabled(cfg, f.key));
+        const numDataCols = 1 + enabledFields.length; // performer + enabled optional
+
+        const outerWrap = document.createElement('div');
+        outerWrap.className = 'setup-grid-wrap';
+
+        const table = document.createElement('table');
+        table.className = 'setup-grid';
+
+        // Header row
+        const thead = document.createElement('thead');
+        const hr = document.createElement('tr');
+        [{ label: 'Mic' }, { label: 'Performer' }, ...enabledFields].forEach(f => {
+          const th = document.createElement('th');
+          th.textContent = f.label;
+          hr.appendChild(th);
+        });
+        thead.appendChild(hr);
+        table.appendChild(thead);
+
+        // Body rows
+        const tbody = document.createElement('tbody');
+        const sorted = [...mics].sort((a, b) =>
+          a.micId.localeCompare(b.micId, undefined, { numeric: true })
+        );
+
+        for (const mic of sorted) {
+          const tr = document.createElement('tr');
+          tr.dataset.micId = mic.micId;
+
+          const tdMic = document.createElement('td');
+          tdMic.className = 'grid-mic-id';
+          tdMic.textContent = mic.micId;
+          tr.appendChild(tdMic);
+
+          // Performer (always)
+          const tdPerf = document.createElement('td');
+          const inpPerf = document.createElement('input');
+          inpPerf.type = 'text';
+          inpPerf.value = mic.performer || '';
+          inpPerf.dataset.field = 'performer';
+          tdPerf.appendChild(inpPerf);
+          tr.appendChild(tdPerf);
+
+          // Enabled optional fields
+          for (const f of enabledFields) {
+            const td = document.createElement('td');
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.value = mic[f.key] || '';
+            inp.dataset.field = f.key;
+            td.appendChild(inp);
+            tr.appendChild(td);
+          }
+
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+
+        // Flat input list for Enter-key navigation
+        const allInputs = Array.from(table.querySelectorAll('tbody input'));
+
+        table.addEventListener('focusin', e => {
+          if (e.target.tagName === 'INPUT') e.target._originalValue = e.target.value;
+        });
+
+        table.addEventListener('focusout', e => {
+          if (e.target.tagName !== 'INPUT') return;
+          if (e.target.value === e.target._originalValue) return;
+          const tr = e.target.closest('tr');
+          saveRow(tr.dataset.micId, tr);
+        });
+
+        table.addEventListener('keydown', e => {
+          if (e.target.tagName !== 'INPUT' || e.key !== 'Enter') return;
+          e.preventDefault();
+          const idx = allInputs.indexOf(e.target);
+          const nextIdx = idx + numDataCols;
+          if (nextIdx < allInputs.length) allInputs[nextIdx].focus();
+        });
+
+        outerWrap.appendChild(table);
+        setupGridSlot.appendChild(outerWrap);
+      }
+
+      async function saveRow(micId, tr) {
+        tr.classList.add('saving');
+        tr.classList.remove('saved', 'error');
+        const body = {};
+        for (const inp of tr.querySelectorAll('input[data-field]')) {
+          body[inp.dataset.field] = inp.value;
+        }
+        try {
+          const res = await fetch(
+            `/api/shows/${show.id}/mics/${encodeURIComponent(micId)}`,
+            { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+          );
+          if (!res.ok) throw new Error();
+          const updated = await res.json();
+          const idx = currentMicsCache.findIndex(m => m.micId === micId);
+          if (idx !== -1) currentMicsCache[idx] = updated;
+          tr.classList.remove('saving');
+          tr.classList.add('saved');
+          // Also refresh the count (assigned count may have changed)
+          const total = currentMicsCache.length;
+          const assigned = currentMicsCache.filter(m => m.performer).length;
+          setupCount.innerHTML = `<strong>${total}</strong> mic${total !== 1 ? 's' : ''} set up` +
+            (assigned > 0 ? `, <strong>${assigned}</strong> assigned` : ', none assigned yet') + '.';
+          setTimeout(() => tr.classList.remove('saved'), 1200);
+        } catch {
+          tr.classList.remove('saving');
+          tr.classList.add('error');
+          setTimeout(() => tr.classList.remove('error'), 2000);
         }
       }
 
