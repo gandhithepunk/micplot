@@ -17,7 +17,9 @@ const PORT = Number(process.env.PORT ?? 3000);
 const app = Fastify({ logger: true });
 
 await app.register(fastifyCookie);
-await app.register(fastifyMultipart);
+await app.register(fastifyMultipart, {
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB per file
+});
 
 // Serve the built frontend (see src/client). In dev, run the client's own
 // dev server separately and point it at this API instead.
