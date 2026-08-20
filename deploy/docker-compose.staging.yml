@@ -1,5 +1,5 @@
 services:
-  micplot-staging:
+  micplot:
     image: ghcr.io/gandhithepunk/micplot:dev
     ports:
       - "3001:3000"
