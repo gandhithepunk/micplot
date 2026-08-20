@@ -306,9 +306,9 @@
     </div>
   </div>
 
-  <!-- Entry fields -->
+  <!-- Cast fields -->
   <div class="section">
-    <div class="section-label">Entry</div>
+    <div class="section-label">Cast</div>
 
     <div class="field">
       <label class="field-label" for="f-performer">Performer</label>
@@ -332,6 +332,21 @@
       <input type="text" id="f-pronouns-custom" autocomplete="off"
              placeholder="Enter pronouns"
              style="display:none; margin-top:0.5rem;" />
+    </div>
+
+    <div class="field" id="field-allergy">
+      <label class="field-label" for="f-allergy">Allergy</label>
+      <input type="text" id="f-allergy" placeholder="e.g. latex" autocomplete="off" />
+    </div>
+  </div>
+
+  <!-- Mic fields -->
+  <div class="section">
+    <div class="section-label">Mic</div>
+
+    <div class="field" id="field-micModel">
+      <label class="field-label" for="f-mic-model">Mic Model</label>
+      <input type="text" id="f-mic-model" placeholder="e.g. DPA 4061" autocomplete="off" />
     </div>
 
     <div class="field" id="field-micColor">
@@ -358,24 +373,9 @@
       </select>
     </div>
 
-    <div class="field" id="field-sensitivity">
-      <label class="field-label" for="f-sensitivity">Sensitivity</label>
-      <input type="text" id="f-sensitivity" placeholder="-6" autocomplete="off" inputmode="text" />
-    </div>
-
-    <div class="field" id="field-allergy">
-      <label class="field-label" for="f-allergy">Allergy</label>
-      <input type="text" id="f-allergy" placeholder="e.g. latex" autocomplete="off" />
-    </div>
-
-    <div class="field" id="field-notes">
-      <label class="field-label" for="f-notes">Notes</label>
-      <textarea id="f-notes"></textarea>
-    </div>
-
-    <div class="field" id="field-micModel">
-      <label class="field-label" for="f-mic-model">Mic Model</label>
-      <input type="text" id="f-mic-model" placeholder="e.g. DPA 4061" autocomplete="off" />
+    <div class="field" id="field-packModel">
+      <label class="field-label" for="f-pack-model">Pack Model</label>
+      <input type="text" id="f-pack-model" placeholder="e.g. Shure ULXD1" autocomplete="off" />
     </div>
 
     <div class="field" id="field-frequency">
@@ -383,9 +383,14 @@
       <input type="text" id="f-frequency" placeholder="e.g. 606.500" autocomplete="off" inputmode="decimal" />
     </div>
 
-    <div class="field" id="field-packModel">
-      <label class="field-label" for="f-pack-model">Pack Model</label>
-      <input type="text" id="f-pack-model" placeholder="e.g. Shure ULXD1" autocomplete="off" />
+    <div class="field" id="field-sensitivity">
+      <label class="field-label" for="f-sensitivity">Sensitivity</label>
+      <input type="text" id="f-sensitivity" placeholder="-6" autocomplete="off" inputmode="text" />
+    </div>
+
+    <div class="field" id="field-notes">
+      <label class="field-label" for="f-notes">Notes</label>
+      <textarea id="f-notes"></textarea>
     </div>
   </div>
 

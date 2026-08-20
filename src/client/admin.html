@@ -555,14 +555,14 @@ document.getElementById('share-btn').addEventListener('click', e => {
   const OPTIONAL_FIELDS = [
     { key: 'character',    label: 'Character'   },
     { key: 'pronouns',    label: 'Pronouns'    },
+    { key: 'allergy',     label: 'Allergy'     },
+    { key: 'micModel',    label: 'Mic Model'   },
     { key: 'micColor',    label: 'Mic Color'   },
     { key: 'placement',   label: 'Placement'   },
-    { key: 'sensitivity', label: 'Sensitivity' },
-    { key: 'allergy',     label: 'Allergy'     },
-    { key: 'notes',       label: 'Notes'       },
-    { key: 'micModel',    label: 'Mic Model'   },
-    { key: 'frequency',   label: 'Frequency'   },
     { key: 'packModel',   label: 'Pack Model'  },
+    { key: 'frequency',   label: 'Frequency'   },
+    { key: 'sensitivity', label: 'Sensitivity' },
+    { key: 'notes',       label: 'Notes'       },
   ];
   function isFieldEnabled(cfg, key) {
     if (!cfg) return true;

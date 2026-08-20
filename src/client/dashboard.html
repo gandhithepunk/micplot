@@ -575,6 +575,16 @@
         </div>
 
         <div class="edit-field">
+          <label for="edit-allergy">Allergy</label>
+          <input type="text" id="edit-allergy" placeholder="e.g. latex" autocomplete="off" />
+        </div>
+
+        <div class="edit-field">
+          <label for="edit-mic-model">Mic Model</label>
+          <input type="text" id="edit-mic-model" placeholder="e.g. DPA 4061" autocomplete="off" />
+        </div>
+
+        <div class="edit-field">
           <label for="edit-mic-color">Mic Color</label>
           <select id="edit-mic-color">
             <option value="">—</option>
@@ -599,13 +609,18 @@
         </div>
 
         <div class="edit-field">
-          <label for="edit-sensitivity">Sensitivity</label>
-          <input type="text" id="edit-sensitivity" placeholder="-6" autocomplete="off" />
+          <label for="edit-pack-model">Pack Model</label>
+          <input type="text" id="edit-pack-model" placeholder="e.g. Shure ULXD1" autocomplete="off" />
         </div>
 
         <div class="edit-field">
-          <label for="edit-allergy">Allergy</label>
-          <input type="text" id="edit-allergy" placeholder="e.g. latex" autocomplete="off" />
+          <label for="edit-frequency">Frequency</label>
+          <input type="text" id="edit-frequency" placeholder="e.g. 606.500" autocomplete="off" inputmode="decimal" />
+        </div>
+
+        <div class="edit-field">
+          <label for="edit-sensitivity">Sensitivity</label>
+          <input type="text" id="edit-sensitivity" placeholder="-6" autocomplete="off" />
         </div>
 
         <div class="edit-field">
@@ -941,14 +956,17 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
     // Read-only fields
     const rows = [
-      ['Performer', d.performer],
-      ['Character', d.character],
-      ['Pronouns',  d.pronouns],
-      ['Mic Color', d.micColor],
-      ['Placement', d.placement],
-      ['Sensitivity', d.sensitivity],
-      ['Allergy',   d.allergy, true],
-      ['Notes',     d.notes],
+      ['Performer',  d.performer],
+      ['Character',  d.character],
+      ['Pronouns',   d.pronouns],
+      ['Allergy',    d.allergy, true],
+      ['Mic Model',  d.micModel],
+      ['Mic Color',  d.micColor],
+      ['Placement',  d.placement],
+      ['Pack Model', d.packModel],
+      ['Frequency',  d.frequency],
+      ['Sensitivity',d.sensitivity],
+      ['Notes',      d.notes],
     ];
     detailFields.innerHTML = '';
     for (const [label, value, isAllergy] of rows) {
@@ -1052,10 +1070,13 @@ document.getElementById('share-btn').addEventListener('click', e => {
     document.getElementById('edit-performer').value   = '';
     document.getElementById('edit-character').value   = '';
     fillEditPronouns('');
+    document.getElementById('edit-allergy').value     = '';
+    document.getElementById('edit-mic-model').value   = '';
     document.getElementById('edit-mic-color').value   = '';
     document.getElementById('edit-placement').value   = '';
+    document.getElementById('edit-pack-model').value  = '';
+    document.getElementById('edit-frequency').value   = '';
     document.getElementById('edit-sensitivity').value = '';
-    document.getElementById('edit-allergy').value     = '';
     document.getElementById('edit-notes').value       = '';
 
     // Hide delete section (nothing to delete yet)
@@ -1109,10 +1130,13 @@ document.getElementById('share-btn').addEventListener('click', e => {
     document.getElementById('edit-performer').value   = d.performer   || '';
     document.getElementById('edit-character').value   = d.character   || '';
     fillEditPronouns(d.pronouns || '');
+    document.getElementById('edit-allergy').value     = d.allergy     || '';
+    document.getElementById('edit-mic-model').value   = d.micModel    || '';
     document.getElementById('edit-mic-color').value   = d.micColor    || '';
     document.getElementById('edit-placement').value   = d.placement   || '';
+    document.getElementById('edit-pack-model').value  = d.packModel   || '';
+    document.getElementById('edit-frequency').value   = d.frequency   || '';
     document.getElementById('edit-sensitivity').value = d.sensitivity || '';
-    document.getElementById('edit-allergy').value     = d.allergy     || '';
     document.getElementById('edit-notes').value       = d.notes       || '';
 
     deleteSection.style.display = '';
@@ -1157,10 +1181,13 @@ document.getElementById('share-btn').addEventListener('click', e => {
       performer:   document.getElementById('edit-performer').value,
       character:   document.getElementById('edit-character').value,
       pronouns:    getEditPronouns(),
+      allergy:     document.getElementById('edit-allergy').value,
+      micModel:    document.getElementById('edit-mic-model').value,
       micColor:    document.getElementById('edit-mic-color').value,
       placement:   document.getElementById('edit-placement').value,
+      packModel:   document.getElementById('edit-pack-model').value,
+      frequency:   document.getElementById('edit-frequency').value,
       sensitivity: document.getElementById('edit-sensitivity').value,
-      allergy:     document.getElementById('edit-allergy').value,
       notes:       document.getElementById('edit-notes').value,
     };
 
