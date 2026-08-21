@@ -598,12 +598,12 @@
           <input type="text" id="edit-performer" autocomplete="off" />
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-character">
           <label for="edit-character">Character</label>
           <input type="text" id="edit-character" autocomplete="off" />
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-pronouns">
           <label for="edit-pronouns-select">Pronouns</label>
           <select id="edit-pronouns-select">
             <option value="">—</option>
@@ -616,17 +616,17 @@
                  placeholder="Enter pronouns" style="display:none; margin-top:0.5rem;" />
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-allergy">
           <label for="edit-allergy">Allergy</label>
           <input type="text" id="edit-allergy" placeholder="e.g. latex" autocomplete="off" />
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-micModel">
           <label for="edit-mic-model">Mic Model</label>
           <input type="text" id="edit-mic-model" placeholder="e.g. DPA 4061" autocomplete="off" />
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-micColor">
           <label for="edit-mic-color">Mic Color</label>
           <select id="edit-mic-color">
             <option value="">—</option>
@@ -638,7 +638,7 @@
           </select>
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-placement">
           <label for="edit-placement">Placement</label>
           <select id="edit-placement">
             <option value="">—</option>
@@ -650,22 +650,22 @@
           </select>
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-packModel">
           <label for="edit-pack-model">Pack Model</label>
           <input type="text" id="edit-pack-model" placeholder="e.g. Shure ULXD1" autocomplete="off" />
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-frequency">
           <label for="edit-frequency">Frequency</label>
           <input type="text" id="edit-frequency" placeholder="e.g. 606.500" autocomplete="off" inputmode="decimal" />
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-sensitivity">
           <label for="edit-sensitivity">Sensitivity</label>
           <input type="text" id="edit-sensitivity" placeholder="-6" autocomplete="off" />
         </div>
 
-        <div class="edit-field">
+        <div class="edit-field" id="edit-field-notes">
           <label for="edit-notes">Notes</label>
           <textarea id="edit-notes"></textarea>
         </div>
@@ -741,8 +741,26 @@ document.getElementById('share-btn').addEventListener('click', e => {
   let addMode          = false;    // panel open for new entry (no existing detailData)
   let evtSource        = null;     // active EventSource connection
   let sseConnected     = false;    // tracks reconnects for catch-up reload
-  let editSavedPhotos  = [];       // [{id, filename}] already in DB
-  let editPendingPhotos = [];      // File[] queued for upload on save
+  let editSavedPhotos   = [];       // [{id, filename}] already in DB
+  let editPendingPhotos = [];       // File[] queued for upload on save
+  let loadedShows       = [];       // full show objects including fieldConfig
+  let currentFieldConfig = null;
+
+  const EDIT_OPTIONAL_FIELDS = [
+    'character','pronouns','allergy','micModel',
+    'micColor','placement','packModel','frequency','sensitivity','notes',
+  ];
+  function isFieldEnabled(cfg, key) {
+    if (!cfg) return true;
+    if (!(key in cfg)) return true;
+    return cfg[key] !== false;
+  }
+  function applyEditFieldConfig(cfg) {
+    for (const key of EDIT_OPTIONAL_FIELDS) {
+      const el = document.getElementById('edit-field-' + key);
+      if (el) el.style.display = isFieldEnabled(cfg, key) ? 'block' : 'none';
+    }
+  }
 
   // ── DOM ────────────────────────────────────────────────────────────────────
   const showSelect      = document.getElementById('show-select');
@@ -796,6 +814,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
     try {
       const res = await fetch('/api/shows?active=true');
       const shows = await res.json();
+      loadedShows = shows;
       for (const s of shows) {
         const opt = document.createElement('option');
         opt.value = s.id;
@@ -812,6 +831,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
       btnAddMic.style.display = '';
     } else {
       currentShowId = null;
+      currentFieldConfig = null;
       mics = [];
       renderCards();
       btnAddMic.style.display = 'none';
@@ -820,6 +840,8 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
   async function onShowChange(showId) {
     currentShowId = showId;
+    const show = loadedShows.find(s => String(s.id) === String(showId));
+    currentFieldConfig = show?.fieldConfig ?? null;
     await loadMics();
     connectSSE(showId);
   }
@@ -1135,6 +1157,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
     editSavedPhotos  = [];
     editPendingPhotos = [];
     rebuildEditPhotoGrid();
+    applyEditFieldConfig(currentFieldConfig);
 
     // Hide delete section (nothing to delete yet)
     deleteSection.style.display = 'none';
@@ -1252,6 +1275,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
     editSavedPhotos  = [...(d.photos || [])];
     editPendingPhotos = [];
     rebuildEditPhotoGrid();
+    applyEditFieldConfig(currentFieldConfig);
 
     deleteSection.style.display = '';
     deleteConfirm.style.display = 'none';
