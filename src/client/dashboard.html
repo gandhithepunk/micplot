@@ -897,7 +897,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
   async function init() {
     await loadShows();
     const params = new URLSearchParams(location.search);
-    const showParam = params.get('show');
+    const showParam = params.get('show') || localStorage.getItem('micplot_show');
     if (showParam) {
       showSelect.value = showParam;
       if (showSelect.value) {
@@ -925,16 +925,28 @@ document.getElementById('share-btn').addEventListener('click', e => {
   showSelect.addEventListener('change', () => {
     const v = showSelect.value;
     if (v) {
+      localStorage.setItem('micplot_show', v);
       onShowChange(v);
       btnAddMic.style.display = '';
     } else {
+      localStorage.removeItem('micplot_show');
       currentShowId = null;
       currentFieldConfig = null;
       mics = [];
       renderCards();
+      updateNavShowParam('');
       btnAddMic.style.display = 'none';
     }
   });
+
+  function updateNavShowParam(showId) {
+    document.querySelectorAll('.nav-link[href]').forEach(link => {
+      const url = new URL(link.href, location.origin);
+      if (showId) url.searchParams.set('show', showId);
+      else url.searchParams.delete('show');
+      link.href = url.pathname + url.search;
+    });
+  }
 
   async function onShowChange(showId) {
     currentShowId = showId;
@@ -943,6 +955,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
     fieldFilters = {};
     renderFieldFilterChips();
     updateFilterMoreBtn();
+    updateNavShowParam(showId);
     await loadMics();
     connectSSE(showId);
   }

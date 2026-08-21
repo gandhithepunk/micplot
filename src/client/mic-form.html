@@ -580,14 +580,25 @@ document.getElementById('share-btn').addEventListener('click', e => {
       micPickerSection.style.display = 'none';
       micHeader.style.display = 'none';
       applyFieldConfig(null);
+      updateNavShowParam('');
     }
   });
+
+  function updateNavShowParam(showId) {
+    document.querySelectorAll('.nav-link[href]').forEach(link => {
+      const url = new URL(link.href, location.origin);
+      if (showId) url.searchParams.set('show', showId);
+      else url.searchParams.delete('show');
+      link.href = url.pathname + url.search;
+    });
+  }
 
   async function onShowChange(showId, preselect = '') {
     currentShowId = showId;
     clearStatus();
     const show = loadedShows.find(s => String(s.id) === String(showId));
     applyFieldConfig(show?.fieldConfig ?? null);
+    updateNavShowParam(showId);
     await loadMicPicker(showId, preselect);
   }
 
