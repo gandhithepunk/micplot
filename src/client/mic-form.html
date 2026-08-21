@@ -30,11 +30,45 @@
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
       font-weight: 500;
       min-height: 100vh;
-      padding: 1.5rem 1rem 4rem;
     }
-    .page { max-width: 480px; margin: 0 auto; }
+    .page { max-width: 480px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
 
-    /* Header */
+    /* ── Top bar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      padding: 0.875rem 1rem;
+    }
+    .topbar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .topbar-title { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; }
+    .topbar-row select {
+      flex: 1;
+      background: var(--field);
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.9rem;
+      padding: 0.45rem 2rem 0.45rem 0.65rem;
+      -webkit-appearance: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23888' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.65rem center;
+    }
+    .topbar-row select:focus { outline: none; border-color: var(--accent); }
+
+    /* Header (mic ID) */
     .header { margin-bottom: 1.5rem; }
     .header-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
     .mic-id-display { font-size: 2.75rem; font-weight: 500; line-height: 1; }
@@ -120,7 +154,6 @@
       font-size: 1.1rem;
       line-height: 1;
       padding: 0.35rem 0.55rem;
-      margin-top: 0.5rem;
     }
     .hamburger-btn:hover { color: var(--text); border-color: var(--border-light); }
     .hamburger-menu {
@@ -201,9 +234,12 @@
     .add-photo-btn:hover { border-color: var(--accent); color: var(--text); }
     #photo-input { display: none; }
 
-    /* Mic switcher */
-    .switcher-row { display: flex; gap: 0.5rem; align-items: center; }
-    .switcher-row select { flex: 1; }
+    /* Mic picker */
+    .mic-picker-select {
+      font-size: 1.05rem !important;
+      padding: 0.7rem 2.5rem 0.7rem 0.85rem !important;
+      border-color: var(--accent) !important;
+    }
     .btn-go {
       flex-shrink: 0;
       background: var(--field);
@@ -266,15 +302,14 @@
   </style>
 </head>
 <body>
-<div class="page">
 
-  <!-- Header: mic ID -->
-  <div class="header">
-    <div class="header-label">Mic Plot</div>
-    <div class="mic-id-display" id="mic-id-display" style="display:none"></div>
-    <input type="text" class="mic-id-input" id="mic-id-input"
-           placeholder="Mic ID (e.g. 07)" autocomplete="off"
-           inputmode="text" style="display:none" />
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-row">
+    <span class="topbar-title">Mic Plot</span>
+    <select id="show-select">
+      <option value="">Select a show...</option>
+    </select>
     <div class="hamburger-wrap">
       <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false">☰</button>
       <nav class="hamburger-menu" id="hamburger-menu">
@@ -286,24 +321,21 @@
       </nav>
     </div>
   </div>
+</div>
 
-  <!-- Show picker -->
-  <div class="section">
-    <div class="section-label">Show</div>
-    <select id="show-select">
-      <option value="">Select a show...</option>
+<div class="page">
+
+  <!-- Mic picker (shown when a show is selected) -->
+  <div id="mic-picker-section" style="display:none; margin-bottom: 1.5rem;">
+    <select id="mic-select" class="mic-picker-select">
+      <option value="">Select a mic...</option>
     </select>
   </div>
 
-  <!-- Mic switcher (hidden until a show with entries is loaded) -->
-  <div class="section" id="switcher-section" style="display:none">
-    <div class="section-label">Switch Mic</div>
-    <div class="switcher-row">
-      <select id="switcher-select">
-        <option value="">Select mic...</option>
-      </select>
-      <button class="btn-go" id="switcher-go" type="button">Go</button>
-    </div>
+  <!-- Mic ID display (shown when a mic is selected) -->
+  <div class="header" id="mic-header" style="display:none">
+    <div class="header-label">Mic ID</div>
+    <div class="mic-id-display" id="mic-id-display"></div>
   </div>
 
   <!-- Cast fields -->
@@ -439,8 +471,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
 (function () {
   // ── State ──────────────────────────────────────────────────────────────────
-  let currentShowId = null;
-  let currentMicId  = '';
+  let currentShowId  = null;
   let currentEntryId = null; // null until a DB row exists for this show+mic
   let savedPhotos   = [];    // [{id, filename}] already in DB
   let pendingPhotos = [];    // File[] queued but not yet uploaded
@@ -465,18 +496,17 @@ document.getElementById('share-btn').addEventListener('click', e => {
   }
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
-  const micIdDisplay  = document.getElementById('mic-id-display');
-  const micIdInput    = document.getElementById('mic-id-input');
-  const showSelect    = document.getElementById('show-select');
-  const photoGrid     = document.getElementById('photo-grid');
-  const addPhotoBtn   = document.getElementById('add-photo-btn');
-  const photoInput    = document.getElementById('photo-input');
-  const switcherSec   = document.getElementById('switcher-section');
-  const switcherSel   = document.getElementById('switcher-select');
-  const switcherGo    = document.getElementById('switcher-go');
-  const btnClear      = document.getElementById('btn-clear');
-  const btnSave       = document.getElementById('btn-save');
-  const statusMsg     = document.getElementById('status-msg');
+  const micIdDisplay     = document.getElementById('mic-id-display');
+  const micPickerSection = document.getElementById('mic-picker-section');
+  const micHeader        = document.getElementById('mic-header');
+  const micSelect        = document.getElementById('mic-select');
+  const showSelect       = document.getElementById('show-select');
+  const photoGrid        = document.getElementById('photo-grid');
+  const addPhotoBtn      = document.getElementById('add-photo-btn');
+  const photoInput       = document.getElementById('photo-input');
+  const btnClear         = document.getElementById('btn-clear');
+  const btnSave          = document.getElementById('btn-save');
+  const statusMsg        = document.getElementById('status-msg');
 
   const pronounsSelect = document.getElementById('f-pronouns-select');
   const pronounsCustom = document.getElementById('f-pronouns-custom');
@@ -505,23 +535,14 @@ document.getElementById('share-btn').addEventListener('click', e => {
   // ── Init ───────────────────────────────────────────────────────────────────
   async function init() {
     const params = new URLSearchParams(location.search);
-    currentMicId = params.get('mic') || '';
-
-    if (currentMicId) {
-      micIdDisplay.textContent = currentMicId;
-      micIdDisplay.style.display = '';
-      document.title = `Mic ${currentMicId} — Mic Plot`;
-    } else {
-      micIdInput.style.display = '';
-      micIdInput.focus();
-    }
+    const micParam = params.get('mic') || '';
 
     await loadShows();
 
-    const showParam = params.get('show');
+    const showParam = params.get('show') || localStorage.getItem('micplot_show');
     if (showParam) {
       showSelect.value = showParam;
-      if (showSelect.value) await onShowChange(showParam);
+      if (showSelect.value) await onShowChange(showParam, micParam);
     }
   }
 
@@ -546,34 +567,33 @@ document.getElementById('share-btn').addEventListener('click', e => {
   showSelect.addEventListener('change', () => {
     const v = showSelect.value;
     if (v) {
+      localStorage.setItem('micplot_show', v);
       onShowChange(v);
     } else {
+      localStorage.removeItem('micplot_show');
       currentShowId = null;
       currentEntryId = null;
       clearFields();
       savedPhotos = [];
       pendingPhotos = [];
       rebuildPhotoGrid();
-      switcherSec.style.display = 'none';
+      micPickerSection.style.display = 'none';
+      micHeader.style.display = 'none';
       applyFieldConfig(null);
     }
   });
 
-  async function onShowChange(showId) {
+  async function onShowChange(showId, preselect = '') {
     currentShowId = showId;
     clearStatus();
     const show = loadedShows.find(s => String(s.id) === String(showId));
     applyFieldConfig(show?.fieldConfig ?? null);
-    const mic = getMicId();
-    await Promise.all([
-      loadSwitcher(showId, mic),
-      mic ? loadEntry(showId, mic) : Promise.resolve(),
-    ]);
+    await loadMicPicker(showId, preselect);
   }
 
-  // ── Mic ID helper (URL param or inline input) ──────────────────────────────
+  // ── Mic ID helper ──────────────────────────────────────────────────────────
   function getMicId() {
-    return currentMicId || micIdInput.value.trim();
+    return micSelect.value;
   }
 
   // ── Entry load / fill ──────────────────────────────────────────────────────
@@ -707,36 +727,46 @@ document.getElementById('share-btn').addEventListener('click', e => {
     }
   }
 
-  // ── Mic switcher ───────────────────────────────────────────────────────────
-  async function loadSwitcher(showId, currentMic) {
+  // ── Mic picker ─────────────────────────────────────────────────────────────
+  async function loadMicPicker(showId, selectedMicId = '') {
     try {
       const res = await fetch(`/api/shows/${showId}/mics/switcher`);
-      if (!res.ok) { switcherSec.style.display = 'none'; return; }
+      if (!res.ok) { micPickerSection.style.display = 'none'; return; }
       const mics = await res.json();
 
-      // Exclude the mic currently open
-      const others = mics.filter(m => m.micId !== currentMic);
-      switcherSel.innerHTML = '<option value="">Select mic...</option>';
-      for (const m of others) {
+      micSelect.innerHTML = '<option value="">Select a mic...</option>';
+      for (const m of mics) {
         const opt = document.createElement('option');
         opt.value = m.micId;
         opt.textContent = m.performer ? `${m.micId} — ${m.performer}` : m.micId;
-        switcherSel.appendChild(opt);
+        if (m.micId === selectedMicId) opt.selected = true;
+        micSelect.appendChild(opt);
       }
-      switcherSec.style.display = others.length > 0 ? '' : 'none';
+      micPickerSection.style.display = mics.length > 0 ? 'block' : 'none';
+
+      if (selectedMicId && micSelect.value === selectedMicId) {
+        await onMicChange(selectedMicId);
+      } else {
+        micHeader.style.display = 'none';
+      }
     } catch {
-      switcherSec.style.display = 'none';
+      micPickerSection.style.display = 'none';
     }
   }
 
-  switcherGo.addEventListener('click', () => {
-    const micId = switcherSel.value;
-    if (!micId || !currentShowId) return;
-    const url = new URL(location.href);
-    url.searchParams.set('mic', micId);
-    url.searchParams.set('show', currentShowId);
-    location.href = url.toString();
-  });
+  async function onMicChange(micId) {
+    micHeader.style.display = micId ? 'block' : 'none';
+    micIdDisplay.textContent = micId;
+    document.title = micId ? `Mic ${micId} — Mic Plot` : 'Mic Plot';
+    currentEntryId = null;
+    clearFields();
+    savedPhotos = [];
+    pendingPhotos = [];
+    rebuildPhotoGrid();
+    if (micId) await loadEntry(currentShowId, micId);
+  }
+
+  micSelect.addEventListener('change', () => onMicChange(micSelect.value));
 
   // ── Clear ──────────────────────────────────────────────────────────────────
   btnClear.addEventListener('click', () => {
@@ -798,9 +828,8 @@ document.getElementById('share-btn').addEventListener('click', e => {
         }
       }
 
-      // Refresh switcher — this mic now appears in the list for others
-      const mic = getMicId();
-      await loadSwitcher(currentShowId, mic);
+      // Refresh picker so performer names stay current
+      await loadMicPicker(currentShowId, getMicId());
 
       showStatus('Saved.', 'success');
     } catch {
