@@ -364,6 +364,7 @@
       margin-bottom: 1.25rem;
     }
     .detail-mic-id { font-size: 2.25rem; line-height: 1; }
+    .detail-header-actions { display: flex; align-items: center; gap: 0.5rem; }
     .btn-close {
       background: var(--field);
       border: 1px solid var(--border-light);
@@ -376,6 +377,19 @@
       cursor: pointer;
     }
     .btn-close:hover { color: var(--text); }
+    .btn-save-edit-top {
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.85rem;
+      cursor: pointer;
+    }
+    .btn-save-edit-top:hover { opacity: 0.9; }
+    .btn-save-edit-top:disabled { opacity: 0.45; cursor: not-allowed; }
 
     /* Status toggle */
     .status-toggle {
@@ -877,7 +891,10 @@
       <input type="text" id="add-mic-id-input" class="add-mic-id-input"
              placeholder="Mic ID" autocomplete="off" inputmode="text"
              style="display:none" />
-      <button class="btn-close" id="btn-close" type="button">Close</button>
+      <div class="detail-header-actions">
+        <button class="btn-save-edit-top" id="btn-save-edit" type="button" style="display:none">Save</button>
+        <button class="btn-close" id="btn-close" type="button">Close</button>
+      </div>
     </div>
 
     <!-- Status toggle -->
@@ -992,7 +1009,6 @@
 
       <div class="detail-actions">
         <button class="btn btn-cancel" id="btn-cancel" type="button">Cancel</button>
-        <button class="btn btn-save-edit" id="btn-save-edit" type="button">Save</button>
       </div>
       <div class="save-status" id="save-status"></div>
 
@@ -1522,6 +1538,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
     viewMode.style.display = '';
     editMode.style.display = 'none';
+    btnSaveEdit.style.display = 'none';
     saveStatus.textContent = '';
   }
 
@@ -1636,6 +1653,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
     viewMode.style.display = 'none';
     editMode.style.display = '';
+    btnSaveEdit.style.display = '';
     saveStatus.textContent = '';
 
     showPanel();
@@ -1753,6 +1771,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
     viewMode.style.display = 'none';
     editMode.style.display = '';
+    btnSaveEdit.style.display = '';
     saveStatus.textContent = '';
   });
 
@@ -1765,6 +1784,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
     detailMicIdEl.style.display = '';
     addMicIdInput.style.display = 'none';
     editMode.style.display = 'none';
+    btnSaveEdit.style.display = 'none';
     viewMode.style.display = '';
     saveStatus.textContent = '';
   });
