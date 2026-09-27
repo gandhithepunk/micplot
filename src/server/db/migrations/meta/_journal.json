@@ -36,6 +36,13 @@
       "when": 1790532675166,
       "tag": "0004_lean_songbird",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790547507741,
+      "tag": "0005_even_king_cobra",
+      "breakpoints": true
     }
   ]
 }

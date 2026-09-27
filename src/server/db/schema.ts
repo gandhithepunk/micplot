@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex, type AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 import { relations, sql } from "drizzle-orm";
 
 /**
@@ -72,6 +72,13 @@ export const micEntries = sqliteTable(
     updatedAt: text("updated_at")
       .notNull()
       .default(sql`(current_timestamp)`),
+
+    // Which photo shows as the card background on the dashboard. Null means
+    // "no explicit choice" -- the route layer falls back to the first photo
+    // (lowest id) for the entry. SQLite's ALTER-TABLE-added columns don't
+    // support ON DELETE actions, so the photo-delete route clears this
+    // explicitly before deleting a photo that's set as the cover.
+    coverPhotoId: integer("cover_photo_id").references((): AnySQLiteColumn => micPhotos.id),
   },
   (table) => ({
     // A given mic can only have one row per show.

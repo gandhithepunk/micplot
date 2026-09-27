@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { db } from "../db/index.js";
 import { micEntries, micPhotos } from "../db/schema.js";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { photoStorage } from "../storage.js";
 import { broadcastShow } from "./events.js";
 import { requireAdminAuth } from "../auth.js";
@@ -30,14 +30,34 @@ const EDITABLE_FIELDS = [
 ] as const;
 
 export async function micsRoutes(app: FastifyInstance) {
-  // Dashboard grid: every mic logged for a show.
+  // Dashboard grid: every mic logged for a show. Resolves each entry's card
+  // background -- the explicitly chosen cover photo if set, else the first
+  // photo (lowest id) uploaded for that mic.
   app.get("/api/shows/:showId/mics", async (request) => {
     const { showId } = request.params as { showId: string };
-    return db
+    const entries = db
       .select()
       .from(micEntries)
       .where(and(eq(micEntries.orgId, ORG_ID), eq(micEntries.showId, Number(showId))))
       .all();
+
+    const entryIds = entries.map((e) => e.id);
+    const photos = entryIds.length
+      ? db.select().from(micPhotos).where(inArray(micPhotos.micEntryId, entryIds)).orderBy(asc(micPhotos.id)).all()
+      : [];
+
+    const photosByEntry = new Map<number, typeof photos>();
+    for (const p of photos) {
+      const list = photosByEntry.get(p.micEntryId);
+      if (list) list.push(p);
+      else photosByEntry.set(p.micEntryId, [p]);
+    }
+
+    return entries.map((e) => {
+      const entryPhotos = photosByEntry.get(e.id) ?? [];
+      const cover = entryPhotos.find((p) => p.id === e.coverPhotoId) ?? entryPhotos[0] ?? null;
+      return { ...e, coverPhotoFilename: cover?.filename ?? null };
+    });
   });
 
   // Mic switcher dropdown on the entry form: same data as above, this route
@@ -186,6 +206,32 @@ export async function micsRoutes(app: FastifyInstance) {
     return row;
   });
 
+  // Choose which photo shows as the card background on the dashboard.
+  // photoId: null clears the explicit choice (falls back to first photo).
+  app.patch("/api/mics/:id/cover-photo", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { photoId } = request.body as { photoId: number | null };
+
+    if (photoId !== null) {
+      const photo = db
+        .select()
+        .from(micPhotos)
+        .where(and(eq(micPhotos.id, Number(photoId)), eq(micPhotos.micEntryId, Number(id))))
+        .get();
+      if (!photo) return reply.code(400).send({ error: "Photo does not belong to this mic entry" });
+    }
+
+    const row = db
+      .update(micEntries)
+      .set({ coverPhotoId: photoId })
+      .where(eq(micEntries.id, Number(id)))
+      .returning()
+      .get();
+    if (!row) return reply.code(404).send({ error: "Mic entry not found" });
+    broadcastShow(row.showId);
+    return row;
+  });
+
   // Dashboard: reset every mic in a show back to not_started, e.g. between
   // performances of the same repertory run.
   app.post("/api/shows/:showId/mics/reset-status", async (request, reply) => {
@@ -230,8 +276,20 @@ export async function micsRoutes(app: FastifyInstance) {
     const { photoId } = request.params as { id: string; photoId: string };
     const photo = db.select().from(micPhotos).where(eq(micPhotos.id, Number(photoId))).get();
     if (!photo) return reply.code(404).send({ error: "Photo not found" });
+
+    const entry = db.select().from(micEntries).where(eq(micEntries.id, photo.micEntryId)).get();
+
+    // Clear the cover reference first -- the FK would otherwise block
+    // deleting a photo that's still set as its mic's cover.
+    if (entry?.coverPhotoId === photo.id) {
+      db.update(micEntries).set({ coverPhotoId: null }).where(eq(micEntries.id, entry.id)).run();
+    }
+
     await photoStorage.delete(photo.filename);
     db.delete(micPhotos).where(eq(micPhotos.id, Number(photoId))).run();
+    // Deleting a photo can change what the dashboard card shows as its
+    // cover, so the grid needs to know.
+    if (entry) broadcastShow(entry.showId);
     return reply.code(204).send();
   });
 }

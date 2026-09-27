@@ -251,6 +251,15 @@
     }
     .mic-card:active { opacity: 0.75; }
     .mic-card.checked { border-color: rgba(63,158,109,0.7); }
+    .mic-card.has-cover-photo {
+      background-size: cover;
+      background-position: center;
+    }
+    .mic-card.has-cover-photo .card-mic-id,
+    .mic-card.has-cover-photo .card-performer,
+    .mic-card.has-cover-photo .card-pronouns {
+      text-shadow: 0 1px 3px rgba(0,0,0,0.85);
+    }
     .mic-card.miced   { border-color: rgba(122,92,240,0.7); }
 
     .card-top {
@@ -502,6 +511,18 @@
       display: flex; align-items: center; justify-content: center;
       padding: 0;
     }
+    .set-cover-photo {
+      position: absolute;
+      top: 4px; left: 4px;
+      width: 22px; height: 22px;
+      background: rgba(0,0,0,0.72);
+      border: none; border-radius: 50%;
+      color: #fff; font-size: 13px; line-height: 1;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0;
+    }
+    .set-cover-photo.active { background: var(--accent); }
     .add-photo-btn {
       display: block; width: 100%;
       background: var(--field);
@@ -1236,6 +1257,12 @@ document.getElementById('share-btn').addEventListener('click', e => {
     div.className = `mic-card ${m.status}`;
     div.dataset.micId = m.micId;
 
+    if (m.coverPhotoFilename) {
+      div.classList.add('has-cover-photo');
+      const url = `/api/photos/${encodeURIComponent(m.coverPhotoFilename)}`;
+      div.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.8)), url('${url}')`;
+    }
+
     const pillClass = { not_started: 'pill-not-started', miced: 'pill-miced', checked: 'pill-checked' }[m.status];
     const pillLabel = { not_started: 'Not Started', miced: "Mic'd", checked: 'Checked' }[m.status];
 
@@ -1624,14 +1651,18 @@ document.getElementById('share-btn').addEventListener('click', e => {
   // ── Edit-mode photo management ─────────────────────────────────────────────
   function rebuildEditPhotoGrid() {
     editPhotoGrid.innerHTML = '';
+    // No explicit choice -> the first saved photo is the effective cover,
+    // matching the server's fallback in GET /api/shows/:showId/mics.
+    const effectiveCoverId = detailData?.coverPhotoId ?? editSavedPhotos[0]?.id ?? null;
     for (const p of editSavedPhotos) {
-      const thumb = makeEditThumb(`/api/photos/${p.filename}`, false);
+      const thumb = makeEditThumb(`/api/photos/${p.filename}`, false, p.id === effectiveCoverId);
       thumb.querySelector('.remove-photo').addEventListener('click', () => deleteEditPhoto(p.id));
+      thumb.querySelector('.set-cover-photo').addEventListener('click', () => setCoverPhoto(p.id));
       editPhotoGrid.appendChild(thumb);
     }
     for (let i = 0; i < editPendingPhotos.length; i++) {
       const url = URL.createObjectURL(editPendingPhotos[i]);
-      const thumb = makeEditThumb(url, true);
+      const thumb = makeEditThumb(url, true, false);
       const idx = i;
       thumb.querySelector('.remove-photo').addEventListener('click', () => {
         URL.revokeObjectURL(url);
@@ -1642,7 +1673,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
     }
   }
 
-  function makeEditThumb(src, pending) {
+  function makeEditThumb(src, pending, isCover) {
     const div = document.createElement('div');
     div.className = 'edit-photo-thumb' + (pending ? ' pending' : '');
     const img = document.createElement('img');
@@ -1654,6 +1685,14 @@ document.getElementById('share-btn').addEventListener('click', e => {
     btn.textContent = '×';
     div.appendChild(img);
     div.appendChild(btn);
+    if (!pending) {
+      const coverBtn = document.createElement('button');
+      coverBtn.className = 'set-cover-photo' + (isCover ? ' active' : '');
+      coverBtn.type = 'button';
+      coverBtn.setAttribute('aria-label', isCover ? 'Cover photo' : 'Set as cover photo');
+      coverBtn.textContent = '★';
+      div.appendChild(coverBtn);
+    }
     return div;
   }
 
@@ -1663,6 +1702,21 @@ document.getElementById('share-btn').addEventListener('click', e => {
       const res = await fetch(`/api/mics/${detailData.id}/photos/${photoId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       editSavedPhotos = editSavedPhotos.filter(p => p.id !== photoId);
+      if (detailData.coverPhotoId === photoId) detailData.coverPhotoId = null;
+      rebuildEditPhotoGrid();
+    } catch { /* ignore */ }
+  }
+
+  async function setCoverPhoto(photoId) {
+    if (!detailData) return;
+    try {
+      const res = await fetch(`/api/mics/${detailData.id}/cover-photo`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ photoId }),
+      });
+      if (!res.ok) throw new Error();
+      detailData.coverPhotoId = photoId;
       rebuildEditPhotoGrid();
     } catch { /* ignore */ }
   }

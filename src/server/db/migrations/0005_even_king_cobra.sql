@@ -1,0 +1,1 @@
+ALTER TABLE `mic_entries` ADD `cover_photo_id` integer REFERENCES mic_photos(id);
