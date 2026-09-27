@@ -536,7 +536,7 @@
     .save-status.error { color: var(--red); }
 
     /* Add Mic button */
-    .add-mic-row { margin-top: 0.75rem; }
+    .add-mic-row { margin-top: 0.75rem; display: flex; gap: 0.5rem; }
     .btn-add-mic {
       background: none;
       border: 1px dashed var(--border-light);
@@ -549,6 +549,41 @@
       cursor: pointer;
     }
     .btn-add-mic:hover { border-color: var(--accent); color: var(--accent); }
+    .clear-status-btn {
+      background: none;
+      border: 1px solid rgba(194,91,82,0.4);
+      border-radius: 6px;
+      color: var(--red);
+      font-family: inherit;
+      font-weight: 500;
+      font-size: 0.85rem;
+      padding: 0.4rem 1rem;
+      cursor: pointer;
+    }
+    .clear-status-btn:hover { background: rgba(194,91,82,0.08); }
+    .clear-status-modal {
+      display: none;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      z-index: 220; align-items: center; justify-content: center;
+    }
+    .clear-status-modal.open { display: flex; }
+    .clear-status-modal-inner {
+      background: var(--card); border: 1px solid var(--border-light); border-radius: 10px;
+      padding: 1.25rem; width: 90%; max-width: 320px;
+    }
+    .clear-status-modal-inner h3 { font-size: 0.95rem; margin-bottom: 0.5rem; font-weight: 500; }
+    .clear-status-modal-msg { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem; }
+    .clear-status-actions { display: flex; gap: 0.5rem; }
+    .clear-status-cancel-btn {
+      flex: 1; background: var(--field); border: 1px solid var(--border); color: var(--text-muted);
+      border-radius: 6px; padding: 0.5rem; font-family: inherit; cursor: pointer;
+    }
+    .clear-status-confirm-btn {
+      flex: 1; background: var(--red); border: none; color: #fff;
+      border-radius: 6px; padding: 0.5rem; font-family: inherit; font-weight: 500; cursor: pointer;
+    }
+    .clear-status-confirm-btn:hover { opacity: 0.85; }
+    .clear-status-confirm-btn:disabled { opacity: 0.5; cursor: default; }
 
     /* Add-mode mic ID input in panel header */
     .add-mic-id-input {
@@ -810,6 +845,18 @@
   </div>
   <div class="add-mic-row">
     <button class="btn-add-mic" id="btn-add-mic" type="button" style="display:none">+ Add Mic</button>
+    <button class="clear-status-btn" id="btn-clear-status" type="button" style="display:none">Clear Status</button>
+  </div>
+</div>
+
+<div class="clear-status-modal" id="clear-status-modal">
+  <div class="clear-status-modal-inner">
+    <h3>Clear all mic statuses?</h3>
+    <p class="clear-status-modal-msg">Resets every mic in this show back to Not Started. This can't be undone.</p>
+    <div class="clear-status-actions">
+      <button class="clear-status-cancel-btn" id="clear-status-cancel-btn" type="button">Cancel</button>
+      <button class="clear-status-confirm-btn" id="clear-status-confirm-btn" type="button">Clear Status</button>
+    </div>
   </div>
 </div>
 
@@ -1066,6 +1113,10 @@ document.getElementById('share-btn').addEventListener('click', e => {
   const editProSelect     = document.getElementById('edit-pronouns-select');
   const editProCustom     = document.getElementById('edit-pronouns-custom');
   const btnAddMic         = document.getElementById('btn-add-mic');
+  const btnClearStatus    = document.getElementById('btn-clear-status');
+  const clearStatusModal       = document.getElementById('clear-status-modal');
+  const clearStatusCancelBtn   = document.getElementById('clear-status-cancel-btn');
+  const clearStatusConfirmBtn  = document.getElementById('clear-status-confirm-btn');
   const addMicIdInput     = document.getElementById('add-mic-id-input');
   const deleteSection     = document.getElementById('delete-section');
   const deleteConfirm     = document.getElementById('delete-confirm');
@@ -1084,6 +1135,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
       if (showSelect.value) {
         await onShowChange(showParam);
         btnAddMic.style.display = '';
+        btnClearStatus.style.display = '';
       }
     }
   }
@@ -1109,6 +1161,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
       localStorage.setItem('micplot_show', v);
       onShowChange(v);
       btnAddMic.style.display = '';
+      btnClearStatus.style.display = '';
     } else {
       localStorage.removeItem('micplot_show');
       currentShowId = null;
@@ -1117,6 +1170,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
       renderCards();
       updateNavShowParam('');
       btnAddMic.style.display = 'none';
+      btnClearStatus.style.display = 'none';
     }
   });
 
@@ -1526,6 +1580,25 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
   // ── Add Mic ────────────────────────────────────────────────────────────────
   btnAddMic.addEventListener('click', openAddPanel);
+
+  // ── Clear status ───────────────────────────────────────────────────────────
+  btnClearStatus.addEventListener('click', () => {
+    clearStatusModal.classList.add('open');
+  });
+  clearStatusCancelBtn.addEventListener('click', () => {
+    clearStatusModal.classList.remove('open');
+  });
+  clearStatusConfirmBtn.addEventListener('click', async () => {
+    if (!currentShowId) return;
+    clearStatusConfirmBtn.disabled = true;
+    clearStatusConfirmBtn.textContent = 'Clearing...';
+    try {
+      await fetch(`/api/shows/${currentShowId}/mics/reset-status`, { method: 'POST' });
+    } catch { /* SSE broadcast will be missing; grid just won't refresh this time */ }
+    clearStatusConfirmBtn.disabled = false;
+    clearStatusConfirmBtn.textContent = 'Clear Status';
+    clearStatusModal.classList.remove('open');
+  });
 
   function openAddPanel() {
     if (!currentShowId) return;

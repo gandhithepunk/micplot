@@ -186,6 +186,18 @@ export async function micsRoutes(app: FastifyInstance) {
     return row;
   });
 
+  // Dashboard: reset every mic in a show back to not_started, e.g. between
+  // performances of the same repertory run.
+  app.post("/api/shows/:showId/mics/reset-status", async (request, reply) => {
+    const { showId } = request.params as { showId: string };
+    db.update(micEntries)
+      .set({ status: "not_started", updatedAt: new Date().toISOString() })
+      .where(and(eq(micEntries.orgId, ORG_ID), eq(micEntries.showId, Number(showId))))
+      .run();
+    broadcastShow(Number(showId));
+    return reply.code(200).send({ ok: true });
+  });
+
   // Delete a mic entry and all its photos (files + DB rows).
   // DB cascade handles mic_photos rows; we clean up files manually first.
   app.delete("/api/mics/:id", async (request, reply) => {
