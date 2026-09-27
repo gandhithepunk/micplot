@@ -593,11 +593,15 @@
 
     /* ── Chat ── */
     .chat-unread-dot {
-      position: absolute; top: -2px; right: -2px;
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--accent); display: none;
+      display: none;
+      position: absolute; top: -6px; right: -6px;
+      align-items: center; justify-content: center;
+      min-width: 16px; height: 16px; padding: 0 4px;
+      border-radius: 999px;
+      background: var(--accent); color: #fff;
+      font-size: 0.65rem; font-weight: 600; line-height: 1;
     }
-    .chat-unread-dot.show { display: block; }
+    .chat-unread-dot.show { display: flex; }
     .chat-panel {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 21;
       background: var(--card);
@@ -707,7 +711,7 @@
     }
     .chat-topbar-caret { flex-shrink: 0; transition: transform 0.15s; }
     .chat-topbar-wrap.expanded .chat-topbar-caret { transform: rotate(180deg); }
-    .chat-topbar-wrap .chat-unread-dot { position: static; margin-left: -0.15rem; }
+    .chat-topbar-wrap .chat-unread-dot { position: static; margin-left: 0.15rem; }
     .chat-topbar-expanded {
       display: none;
       position: absolute; left: 0; right: 0; top: 100%; z-index: 15;
@@ -1967,17 +1971,26 @@ document.getElementById('share-btn').addEventListener('click', e => {
     updatePreview();
   }
 
+  let unreadCount = 0;
+
   function isAnyOpen() {
     return sheetPanel.classList.contains('open') || barWrap.classList.contains('expanded');
   }
+  function renderBadges() {
+    const label = unreadCount > 9 ? '9+' : String(unreadCount);
+    for (const dot of [hamburgerDot, barDot]) {
+      dot.textContent = label;
+      dot.classList.toggle('show', unreadCount > 0);
+    }
+  }
   function markSeen() {
-    hamburgerDot.classList.remove('show');
-    barDot.classList.remove('show');
+    unreadCount = 0;
+    renderBadges();
   }
   function markUnread() {
     if (isAnyOpen()) return;
-    hamburgerDot.classList.add('show');
-    barDot.classList.add('show');
+    unreadCount += 1;
+    renderBadges();
   }
 
   // ── Bottom sheet open/close ──────────────────────────────────────────────
