@@ -414,24 +414,15 @@
     .status-btn.active-m   { border-color: rgba(122,92,240,0.5); color: var(--accent); background: rgba(122,92,240,0.12); }
     .status-btn.active-c   { border-color: rgba(63,158,109,0.5);  color: var(--green);  background: rgba(63,158,109,0.12); }
 
-    /* Read-only fields */
-    .detail-fields { margin-bottom: 1.25rem; }
-    .detail-row {
-      display: flex;
-      gap: 0.5rem;
-      padding: 0.55rem 0;
-      border-bottom: 1px solid var(--border);
+    /* Edit fields -- 2 columns to keep the panel from getting too tall;
+       Notes spans both since it's a growing textarea, not a short value. */
+    .edit-fields {
+      margin-bottom: 1.25rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.875rem 0.75rem;
     }
-    .detail-row:last-child { border-bottom: none; }
-    .detail-row-label { font-size: 0.75rem; color: var(--text-muted); min-width: 90px; padding-top: 0.05rem; }
-    .detail-row-value { font-size: 0.9rem; flex: 1; }
-    .detail-row-value.allergy { color: var(--red); }
-    .detail-row-value.empty   { color: var(--text-muted); font-style: italic; }
-
-    /* Edit mode fields */
-    .edit-fields { margin-bottom: 1.25rem; }
-    .edit-field { margin-bottom: 0.875rem; }
-    .edit-field:last-child { margin-bottom: 0; }
+    #edit-field-notes { grid-column: 1 / -1; }
     .edit-field label {
       display: block;
       font-size: 0.75rem;
@@ -465,25 +456,6 @@
     .edit-field textarea:focus { outline: none; border-color: var(--accent); }
     .edit-field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
     #edit-allergy:not(:placeholder-shown) { border-color: var(--red); color: var(--red); }
-
-    /* Photos in detail */
-    .detail-photos { margin-bottom: 1.25rem; }
-    .detail-photos-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.6rem; }
-    .detail-photo-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.5rem;
-    }
-    .detail-photo-grid:empty + .no-photos { display: block; }
-    .no-photos { display: none; font-size: 0.85rem; color: var(--text-muted); }
-    .detail-photo-thumb {
-      aspect-ratio: 1;
-      border-radius: 6px;
-      overflow: hidden;
-      background: var(--field);
-      border: 1px solid var(--border);
-    }
-    .detail-photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
     /* Photos in edit mode */
     .edit-photos { margin-bottom: 1.25rem; }
@@ -538,13 +510,8 @@
       padding: 0.75rem 1.5rem;
       cursor: pointer;
     }
-    .btn-edit  { background: var(--field); color: var(--text); border: 1px solid var(--border-light); }
-    .btn-edit:hover { border-color: var(--accent); }
     .btn-cancel { background: var(--field); color: var(--text-muted); border: 1px solid var(--border); flex: 1; }
     .btn-cancel:hover { color: var(--text); }
-    .btn-save-edit { background: var(--accent); color: #fff; flex: 1; }
-    .btn-save-edit:hover { opacity: 0.9; }
-    .btn-save-edit:disabled { opacity: 0.45; cursor: not-allowed; }
 
     .save-status { font-size: 0.8rem; color: var(--green); margin-top: 0.5rem; min-height: 1.1em; }
     .save-status.error { color: var(--red); }
@@ -892,7 +859,7 @@
              placeholder="Mic ID" autocomplete="off" inputmode="text"
              style="display:none" />
       <div class="detail-header-actions">
-        <button class="btn-save-edit-top" id="btn-save-edit" type="button" style="display:none">Save</button>
+        <button class="btn-save-edit-top" id="btn-save-edit" type="button">Save</button>
         <button class="btn-close" id="btn-close" type="button">Close</button>
       </div>
     </div>
@@ -904,21 +871,8 @@
       <button class="status-btn" data-status="checked" type="button">Checked</button>
     </div>
 
-    <!-- Read-only view -->
-    <div id="view-mode">
-      <div class="detail-fields" id="detail-fields"></div>
-      <div class="detail-photos">
-        <div class="detail-photos-label">Photos</div>
-        <div class="detail-photo-grid" id="detail-photo-grid"></div>
-        <div class="no-photos">No photos</div>
-      </div>
-      <div class="detail-actions">
-        <button class="btn btn-edit" id="btn-edit" type="button">Edit</button>
-      </div>
-    </div>
-
-    <!-- Edit mode -->
-    <div id="edit-mode" style="display:none">
+    <!-- Mic fields (always editable -- no separate read-only mode) -->
+    <div id="edit-mode">
       <div class="edit-fields">
 
         <div class="edit-field">
@@ -1113,15 +1067,10 @@ document.getElementById('share-btn').addEventListener('click', e => {
   const detailPanel     = document.getElementById('detail-panel');
   const detailMicIdEl   = document.getElementById('detail-mic-id');
   const statusToggle    = document.getElementById('status-toggle');
-  const detailFields    = document.getElementById('detail-fields');
-  const detailPhotoGrid = document.getElementById('detail-photo-grid');
-  const viewMode        = document.getElementById('view-mode');
-  const editMode        = document.getElementById('edit-mode');
   const editPhotoGrid   = document.getElementById('edit-photo-grid');
   const editAddPhotoBtn = document.getElementById('edit-add-photo-btn');
   const editPhotoInput  = document.getElementById('edit-photo-input');
   const btnClose        = document.getElementById('btn-close');
-  const btnEdit         = document.getElementById('btn-edit');
   const btnCancel       = document.getElementById('btn-cancel');
   const btnSaveEdit     = document.getElementById('btn-save-edit');
   const saveStatus      = document.getElementById('save-status');
@@ -1487,59 +1436,41 @@ document.getElementById('share-btn').addEventListener('click', e => {
       detailData = await res.json();
     } catch { return; }
 
-    renderDetail();
-    showPanel();
-  }
-
-  function renderDetail() {
-    const d = detailData;
-    detailMicIdEl.textContent = d.micId;
-
-    // Status toggle
-    updateStatusButtons(d.status);
-
-    // Read-only fields
-    const rows = [
-      ['Performer',  d.performer],
-      ['Character',  d.character],
-      ['Pronouns',   d.pronouns],
-      ['Allergy',    d.allergy, true],
-      ['Mic Model',  d.micModel],
-      ['Mic Color',  d.micColor],
-      ['Placement',  d.placement],
-      ['Pack Model', d.packModel],
-      ['Frequency',  d.frequency],
-      ['Sensitivity',d.sensitivity],
-      ['Notes',      d.notes],
-    ];
-    detailFields.innerHTML = '';
-    for (const [label, value, isAllergy] of rows) {
-      if (!value) continue;
-      const row = document.createElement('div');
-      row.className = 'detail-row';
-      const cls = isAllergy ? 'detail-row-value allergy' : 'detail-row-value';
-      row.innerHTML = `<span class="detail-row-label">${label}</span><span class="${cls}">${value}</span>`;
-      detailFields.appendChild(row);
-    }
-
-    // Photos
-    detailPhotoGrid.innerHTML = '';
-    for (const p of d.photos || []) {
-      const thumb = document.createElement('div');
-      thumb.className = 'detail-photo-thumb';
-      thumb.innerHTML = `<img src="/api/photos/${p.filename}" alt="" />`;
-      detailPhotoGrid.appendChild(thumb);
-    }
-
-    // Restore header + status toggle for view mode
+    addMode = false;
+    detailMicIdEl.textContent = detailData.micId;
     detailMicIdEl.style.display = '';
     addMicIdInput.style.display = 'none';
     statusToggle.style.display = '';
+    updateStatusButtons(detailData.status);
 
-    viewMode.style.display = '';
-    editMode.style.display = 'none';
-    btnSaveEdit.style.display = 'none';
+    populateEditForm(detailData);
+
+    deleteSection.style.display = '';
+    deleteConfirm.style.display = 'none';
     saveStatus.textContent = '';
+
+    showPanel();
+  }
+
+  // Fills the (always-visible) edit form from a mic entry, or blanks it out
+  // for a fresh Add Mic when passed null. Shared by openDetail(), Cancel
+  // (revert unsaved edits), and openAddPanel().
+  function populateEditForm(d) {
+    document.getElementById('edit-performer').value   = d?.performer   || '';
+    document.getElementById('edit-character').value   = d?.character   || '';
+    fillEditPronouns(d?.pronouns || '');
+    document.getElementById('edit-allergy').value     = d?.allergy     || '';
+    document.getElementById('edit-mic-model').value   = d?.micModel    || '';
+    document.getElementById('edit-mic-color').value   = d?.micColor    || '';
+    document.getElementById('edit-placement').value   = d?.placement   || '';
+    document.getElementById('edit-pack-model').value  = d?.packModel   || '';
+    document.getElementById('edit-frequency').value   = d?.frequency   || '';
+    document.getElementById('edit-sensitivity').value = d?.sensitivity || '';
+    document.getElementById('edit-notes').value       = d?.notes       || '';
+    editSavedPhotos  = [...(d?.photos || [])];
+    editPendingPhotos = [];
+    rebuildEditPhotoGrid();
+    applyEditFieldConfig(currentFieldConfig);
   }
 
   function updateStatusButtons(currentStatus) {
@@ -1630,30 +1561,11 @@ document.getElementById('share-btn').addEventListener('click', e => {
     // Hide status toggle (no entry yet)
     statusToggle.style.display = 'none';
 
-    // Clear fields
-    document.getElementById('edit-performer').value   = '';
-    document.getElementById('edit-character').value   = '';
-    fillEditPronouns('');
-    document.getElementById('edit-allergy').value     = '';
-    document.getElementById('edit-mic-model').value   = '';
-    document.getElementById('edit-mic-color').value   = '';
-    document.getElementById('edit-placement').value   = '';
-    document.getElementById('edit-pack-model').value  = '';
-    document.getElementById('edit-frequency').value   = '';
-    document.getElementById('edit-sensitivity').value = '';
-    document.getElementById('edit-notes').value       = '';
-    editSavedPhotos  = [];
-    editPendingPhotos = [];
-    rebuildEditPhotoGrid();
-    applyEditFieldConfig(currentFieldConfig);
+    populateEditForm(null);
 
     // Hide delete section (nothing to delete yet)
     deleteSection.style.display = 'none';
     deleteConfirm.style.display = 'none';
-
-    viewMode.style.display = 'none';
-    editMode.style.display = '';
-    btnSaveEdit.style.display = '';
     saveStatus.textContent = '';
 
     showPanel();
@@ -1740,52 +1652,13 @@ document.getElementById('share-btn').addEventListener('click', e => {
     else editProCustom.value = '';
   });
 
-  btnEdit.addEventListener('click', () => {
-    const d = detailData;
-    addMode = false;
-
-    // Ensure header shows display (not input)
-    detailMicIdEl.style.display = '';
-    addMicIdInput.style.display = 'none';
-    statusToggle.style.display = 'none'; // hide while in edit form
-
-    document.getElementById('edit-performer').value   = d.performer   || '';
-    document.getElementById('edit-character').value   = d.character   || '';
-    fillEditPronouns(d.pronouns || '');
-    document.getElementById('edit-allergy').value     = d.allergy     || '';
-    document.getElementById('edit-mic-model').value   = d.micModel    || '';
-    document.getElementById('edit-mic-color').value   = d.micColor    || '';
-    document.getElementById('edit-placement').value   = d.placement   || '';
-    document.getElementById('edit-pack-model').value  = d.packModel   || '';
-    document.getElementById('edit-frequency').value   = d.frequency   || '';
-    document.getElementById('edit-sensitivity').value = d.sensitivity || '';
-    document.getElementById('edit-notes').value       = d.notes       || '';
-
-    editSavedPhotos  = [...(d.photos || [])];
-    editPendingPhotos = [];
-    rebuildEditPhotoGrid();
-    applyEditFieldConfig(currentFieldConfig);
-
-    deleteSection.style.display = '';
-    deleteConfirm.style.display = 'none';
-
-    viewMode.style.display = 'none';
-    editMode.style.display = '';
-    btnSaveEdit.style.display = '';
-    saveStatus.textContent = '';
-  });
-
   btnCancel.addEventListener('click', () => {
     if (addMode) {
       closePanel();
       return;
     }
-    statusToggle.style.display = '';
-    detailMicIdEl.style.display = '';
-    addMicIdInput.style.display = 'none';
-    editMode.style.display = 'none';
-    btnSaveEdit.style.display = 'none';
-    viewMode.style.display = '';
+    // Discard unsaved edits -- refill the form from the last-saved data.
+    populateEditForm(detailData);
     saveStatus.textContent = '';
   });
 
@@ -1844,13 +1717,18 @@ document.getElementById('share-btn').addEventListener('click', e => {
         if (refreshRes.ok) finalPhotos = (await refreshRes.json()).photos || [];
       }
 
-      // Transition: switch panel to view mode for the saved entry
+      // After an Add Mic save, transition straight into editing the entry
+      // that was just created -- same screen, now with real data.
       addMode = false;
       detailData = { ...updated, photos: finalPhotos };
+      detailMicIdEl.textContent = detailData.micId;
       detailMicIdEl.style.display = '';
       addMicIdInput.style.display = 'none';
       statusToggle.style.display = '';
-      renderDetail();
+      updateStatusButtons(detailData.status);
+      populateEditForm(detailData);
+      deleteSection.style.display = '';
+      deleteConfirm.style.display = 'none';
       saveStatus.textContent = 'Saved.';
     } catch {
       saveStatus.textContent = 'Save failed.';
