@@ -27,7 +27,14 @@ rebuild as a self-hosted web app.
 - **Live updates:** dashboard clients subscribe to `/api/events` (Server-Sent
   Events, `src/server/routes/events.ts`); any write in `mics.ts` broadcasts
   a `mics_updated` event to everyone watching that show, so the grid
-  refreshes without polling.
+  refreshes without polling. `chat.ts` broadcasts `chat_message` events over
+  the same per-show connection.
+- **Chat:** a per-show A1/A2 channel (`chat.ts`, `chat_messages` table),
+  live over the SSE connection above. There's no per-user login, so senders
+  aren't real accounts — the client attaches a display name (tap-to-switch
+  chip, stored in `localStorage`) to each message. This matters because
+  multiple A2s share the same device across a show run: the name is
+  per-session, not baked into the device.
 - **Deployment:** Docker + docker-compose. `docker compose up` is the whole
   install story, on Mac, Linux, or Windows. The published image goes to
   `ghcr.io` on merges to `main`; `deploy/` holds compose files for a
@@ -51,6 +58,8 @@ rebuild as a self-hosted web app.
 - `shows.fieldConfig` — nullable per-show JSON that toggles which fields
   appear on the entry form and dashboard (null = all fields on, for backward
   compat with shows created before this existed).
+- `chat_messages` — per-show A1/A2 chat log. `senderName` is free text, not
+  a foreign key, since there are no real user accounts (see Chat above).
 
 See `src/server/db/schema.ts` for the full schema with field-level comments.
 
@@ -89,6 +98,7 @@ src/
       photos.ts           # photo upload/serve
       events.ts             # SSE broadcast for live dashboard updates
       qr.ts                   # QR code generation for the share link
+      chat.ts                   # per-show chat: history + post, broadcasts over SSE
       auth.ts               # login/logout
     auth.ts             # shared-password session middleware
     storage.ts          # photo storage abstraction
