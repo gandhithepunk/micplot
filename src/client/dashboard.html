@@ -689,6 +689,53 @@
       background: var(--field); border: 1px solid var(--border); color: var(--text-muted);
       border-radius: 6px; padding: 0.5rem 0.75rem; font-family: inherit; cursor: pointer;
     }
+
+    /* ── Chat top bar (collapsible, dashboard-only) ── */
+    .chat-topbar-wrap { position: relative; border-bottom: 1px solid var(--border); }
+    .chat-topbar-collapsed {
+      display: flex; align-items: center; gap: 0.5rem; width: 100%;
+      max-width: 900px; margin: 0 auto;
+      background: none; border: none; color: var(--text-muted);
+      font-family: inherit; font-size: 0.85rem; text-align: left;
+      padding: 0.6rem 1rem; cursor: pointer;
+    }
+    .chat-topbar-collapsed:hover { color: var(--text); }
+    .chat-topbar-label { color: var(--accent); font-weight: 500; flex-shrink: 0; }
+    .chat-topbar-preview {
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      color: var(--text-muted);
+    }
+    .chat-topbar-caret { flex-shrink: 0; transition: transform 0.15s; }
+    .chat-topbar-wrap.expanded .chat-topbar-caret { transform: rotate(180deg); }
+    .chat-topbar-wrap .chat-unread-dot { position: static; margin-left: -0.15rem; }
+    .chat-topbar-expanded {
+      display: none;
+      position: absolute; left: 0; right: 0; top: 100%; z-index: 15;
+      background: var(--card); border-bottom: 1px solid var(--border-light);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+    .chat-topbar-wrap.expanded .chat-topbar-expanded { display: block; }
+    .chat-topbar-inner { max-width: 580px; margin: 0 auto; padding: 0.75rem 1.25rem 1rem; }
+    .chat-topbar-header { display: flex; justify-content: flex-end; margin-bottom: 0.5rem; }
+    .chat-topbar-messages {
+      max-height: 45vh; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .chat-topbar-compose {
+      display: flex; gap: 0.5rem; padding-top: 0.6rem;
+      border-top: 1px solid var(--border); margin-top: 0.5rem;
+    }
+    .chat-topbar-compose textarea {
+      flex: 1; resize: none; background: var(--field); border: 1px solid var(--border-light);
+      border-radius: 8px; color: var(--text); font-family: inherit; font-size: 0.9rem;
+      padding: 0.5rem 0.65rem; max-height: 5rem;
+    }
+    .chat-topbar-compose textarea:focus { outline: none; border-color: var(--accent); }
+    .chat-topbar-send-btn {
+      background: var(--accent); border: none; color: #fff; border-radius: 8px;
+      padding: 0 1rem; font-family: inherit; font-weight: 500; cursor: pointer;
+    }
+    .chat-topbar-send-btn:disabled { opacity: 0.5; cursor: default; }
   </style>
 </head>
 <body>
@@ -710,6 +757,30 @@
         <button class="nav-link" id="chat-btn" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;font-family:inherit;">Chat</button>
         <button class="nav-link" id="share-btn" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;font-family:inherit;">Share</button>
       </nav>
+    </div>
+  </div>
+</div>
+
+<!-- Chat top bar (collapsed preview, expands on tap, collapses on tap-out) -->
+<div class="chat-topbar-wrap" id="chat-topbar-wrap">
+  <button class="chat-topbar-collapsed" id="chat-topbar-collapsed" type="button">
+    <span class="chat-topbar-label">Chat</span>
+    <span class="chat-topbar-preview" id="chat-topbar-preview"></span>
+    <span class="chat-unread-dot" id="chat-topbar-unread-dot"></span>
+    <span class="chat-topbar-caret">▾</span>
+  </button>
+  <div class="chat-topbar-expanded" id="chat-topbar-expanded">
+    <div class="chat-topbar-inner">
+      <div class="chat-topbar-header">
+        <button class="chat-name-chip" id="chat-topbar-name-chip" type="button"></button>
+      </div>
+      <div class="chat-topbar-messages" id="chat-topbar-messages">
+        <div class="chat-empty" id="chat-topbar-empty">No messages yet</div>
+      </div>
+      <div class="chat-topbar-compose">
+        <textarea id="chat-topbar-input" rows="1" placeholder="Message..." maxlength="2000"></textarea>
+        <button class="chat-topbar-send-btn" id="chat-topbar-send-btn" type="button">Send</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1761,32 +1832,52 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
 <script>
 // ── Chat ─────────────────────────────────────────────────────────────────────
+// Two surfaces share one chat: the hamburger pop-out (bottom sheet) and the
+// collapsible top bar. Same messages/SSE/identity underneath -- a message
+// sent from one shows up in the other immediately, since both just re-render
+// off the same `messages` array.
 (function () {
   const CHAT_NAME_KEY = 'micplot_chat_name';
   const CHAT_NAMES_KEY = 'micplot_chat_names';
   const MAX_RECENT_NAMES = 6;
 
   const showSelect  = document.getElementById('show-select');
-  const panel       = document.getElementById('chat-panel');
-  const backdrop    = document.getElementById('chat-backdrop');
-  const messagesEl  = document.getElementById('chat-messages');
-  const emptyEl     = document.getElementById('chat-empty');
-  const input       = document.getElementById('chat-input');
-  const sendBtn     = document.getElementById('chat-send-btn');
-  const nameChip    = document.getElementById('chat-name-chip');
-  const closeBtn    = document.getElementById('chat-close-btn');
-  const chatBtn     = document.getElementById('chat-btn');
-  const unreadDot   = document.getElementById('chat-unread-dot');
-  const nameModal   = document.getElementById('chat-name-modal');
-  const nameInput   = document.getElementById('chat-name-input');
-  const recentNamesEl  = document.getElementById('chat-recent-names');
-  const nameSaveBtn    = document.getElementById('chat-name-save-btn');
-  const nameCancelBtn  = document.getElementById('chat-name-cancel-btn');
+
+  // Bottom sheet (hamburger menu "Chat")
+  const sheetPanel     = document.getElementById('chat-panel');
+  const sheetBackdrop  = document.getElementById('chat-backdrop');
+  const sheetMessages  = document.getElementById('chat-messages');
+  const sheetEmpty     = document.getElementById('chat-empty');
+  const sheetInput     = document.getElementById('chat-input');
+  const sheetSendBtn   = document.getElementById('chat-send-btn');
+  const sheetNameChip  = document.getElementById('chat-name-chip');
+  const sheetCloseBtn  = document.getElementById('chat-close-btn');
+  const chatBtn        = document.getElementById('chat-btn');
+  const hamburgerDot   = document.getElementById('chat-unread-dot');
+
+  // Top bar (collapsed preview, expands on tap, collapses on tap-out)
+  const barWrap       = document.getElementById('chat-topbar-wrap');
+  const barCollapsed  = document.getElementById('chat-topbar-collapsed');
+  const barPreview    = document.getElementById('chat-topbar-preview');
+  const barDot        = document.getElementById('chat-topbar-unread-dot');
+  const barMessages   = document.getElementById('chat-topbar-messages');
+  const barEmpty      = document.getElementById('chat-topbar-empty');
+  const barInput      = document.getElementById('chat-topbar-input');
+  const barSendBtn    = document.getElementById('chat-topbar-send-btn');
+  const barNameChip   = document.getElementById('chat-topbar-name-chip');
+
+  // Shared name-picker modal
+  const nameModal      = document.getElementById('chat-name-modal');
+  const nameInput       = document.getElementById('chat-name-input');
+  const recentNamesEl   = document.getElementById('chat-recent-names');
+  const nameSaveBtn     = document.getElementById('chat-name-save-btn');
+  const nameCancelBtn   = document.getElementById('chat-name-cancel-btn');
 
   let chatShowId = null;
   let messages = [];
   let evtSource = null;
 
+  // ── Identity ──────────────────────────────────────────────────────────────
   function getCurrentName() {
     return localStorage.getItem(CHAT_NAME_KEY) || '';
   }
@@ -1798,10 +1889,12 @@ document.getElementById('share-btn').addEventListener('click', e => {
     const recent = getRecentNames().filter(n => n !== name);
     recent.unshift(name);
     localStorage.setItem(CHAT_NAMES_KEY, JSON.stringify(recent.slice(0, MAX_RECENT_NAMES)));
-    updateNameChip();
+    updateNameChips();
   }
-  function updateNameChip() {
-    nameChip.textContent = getCurrentName() || 'Set name';
+  function updateNameChips() {
+    const label = getCurrentName() || 'Set name';
+    sheetNameChip.textContent = label;
+    barNameChip.textContent = label;
   }
 
   function openNameModal() {
@@ -1814,7 +1907,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
       btn.addEventListener('click', () => {
         rememberName(name);
         nameModal.classList.remove('open');
-        renderMessages();
+        renderAll();
       });
       recentNamesEl.appendChild(btn);
     }
@@ -1822,27 +1915,29 @@ document.getElementById('share-btn').addEventListener('click', e => {
     nameModal.classList.add('open');
     nameInput.focus();
   }
-  nameChip.addEventListener('click', openNameModal);
+  sheetNameChip.addEventListener('click', openNameModal);
+  barNameChip.addEventListener('click', e => { e.stopPropagation(); openNameModal(); });
   nameCancelBtn.addEventListener('click', () => nameModal.classList.remove('open'));
   nameSaveBtn.addEventListener('click', () => {
     const name = nameInput.value.trim();
     if (!name) return;
     rememberName(name);
     nameModal.classList.remove('open');
-    renderMessages();
+    renderAll();
   });
   nameInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); nameSaveBtn.click(); }
   });
 
+  // ── Rendering ─────────────────────────────────────────────────────────────
   function formatTime(createdAt) {
     try {
       return new Date(createdAt.replace(' ', 'T') + 'Z').toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
     } catch { return ''; }
   }
 
-  function renderMessages() {
-    messagesEl.querySelectorAll('.chat-msg').forEach(el => el.remove());
+  function renderMessagesInto(container, emptyEl) {
+    container.querySelectorAll('.chat-msg').forEach(el => el.remove());
     emptyEl.style.display = messages.length ? 'none' : '';
     const selfName = getCurrentName();
     for (const m of messages) {
@@ -1856,37 +1951,84 @@ document.getElementById('share-btn').addEventListener('click', e => {
       body.textContent = m.body;
       div.appendChild(meta);
       div.appendChild(body);
-      messagesEl.appendChild(div);
+      container.appendChild(div);
     }
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    container.scrollTop = container.scrollHeight;
   }
 
-  function openPanel() {
-    if (!chatShowId) return;
-    panel.classList.add('open');
-    backdrop.classList.add('visible');
-    unreadDot.classList.remove('show');
-    setTimeout(() => input.focus(), 250);
+  function updatePreview() {
+    const last = messages[messages.length - 1];
+    barPreview.textContent = last ? `${last.senderName}: ${last.body}` : '';
   }
-  function closePanel() {
-    panel.classList.remove('open');
-    backdrop.classList.remove('visible');
+
+  function renderAll() {
+    renderMessagesInto(sheetMessages, sheetEmpty);
+    renderMessagesInto(barMessages, barEmpty);
+    updatePreview();
+  }
+
+  function isAnyOpen() {
+    return sheetPanel.classList.contains('open') || barWrap.classList.contains('expanded');
+  }
+  function markSeen() {
+    hamburgerDot.classList.remove('show');
+    barDot.classList.remove('show');
+  }
+  function markUnread() {
+    if (isAnyOpen()) return;
+    hamburgerDot.classList.add('show');
+    barDot.classList.add('show');
+  }
+
+  // ── Bottom sheet open/close ──────────────────────────────────────────────
+  function openSheet() {
+    if (!chatShowId) return;
+    closeBar();
+    sheetPanel.classList.add('open');
+    sheetBackdrop.classList.add('visible');
+    markSeen();
+    setTimeout(() => sheetInput.focus(), 250);
+  }
+  function closeSheet() {
+    sheetPanel.classList.remove('open');
+    sheetBackdrop.classList.remove('visible');
   }
   chatBtn.addEventListener('click', e => {
     e.stopPropagation();
     document.getElementById('hamburger-menu').classList.remove('open');
     document.getElementById('hamburger-btn').setAttribute('aria-expanded', 'false');
-    openPanel();
+    openSheet();
   });
-  closeBtn.addEventListener('click', closePanel);
-  backdrop.addEventListener('click', closePanel);
+  sheetCloseBtn.addEventListener('click', closeSheet);
+  sheetBackdrop.addEventListener('click', closeSheet);
 
+  // ── Top bar expand/collapse (tap in to open, tap outside to close) ──────
+  function openBar() {
+    if (!chatShowId) return;
+    closeSheet();
+    barWrap.classList.add('expanded');
+    markSeen();
+    setTimeout(() => barInput.focus(), 150);
+  }
+  function closeBar() {
+    barWrap.classList.remove('expanded');
+  }
+  barCollapsed.addEventListener('click', e => {
+    e.stopPropagation();
+    if (barWrap.classList.contains('expanded')) closeBar();
+    else openBar();
+  });
+  document.addEventListener('click', e => {
+    if (!barWrap.contains(e.target) && !nameModal.contains(e.target)) closeBar();
+  });
+
+  // ── History / SSE / show tracking ────────────────────────────────────────
   async function loadHistory(showId) {
     try {
       const res = await fetch(`/api/shows/${showId}/chat`);
       messages = res.ok ? await res.json() : [];
     } catch { messages = []; }
-    renderMessages();
+    renderAll();
   }
 
   function connectChatSSE(showId) {
@@ -1897,8 +2039,8 @@ document.getElementById('share-btn').addEventListener('click', e => {
         const data = JSON.parse(e.data);
         if (data.type === 'chat_message' && String(data.showId) === String(chatShowId)) {
           messages.push(data.message);
-          renderMessages();
-          if (!panel.classList.contains('open')) unreadDot.classList.add('show');
+          renderAll();
+          markUnread();
         }
       } catch { /* ignore malformed */ }
     });
@@ -1907,37 +2049,43 @@ document.getElementById('share-btn').addEventListener('click', e => {
   function setShow(showId) {
     chatShowId = showId || null;
     messages = [];
-    closePanel();
-    unreadDot.classList.remove('show');
+    closeSheet();
+    closeBar();
+    markSeen();
     if (evtSource) { evtSource.close(); evtSource = null; }
-    if (!chatShowId) { renderMessages(); return; }
+    if (!chatShowId) { renderAll(); return; }
     loadHistory(chatShowId);
     connectChatSSE(chatShowId);
   }
 
-  async function sendMessage() {
-    const body = input.value.trim();
+  // ── Sending (shared, parameterized by which input triggered it) ─────────
+  async function sendMessage(inputEl, btnEl) {
+    const body = inputEl.value.trim();
     if (!body || !chatShowId) return;
-    let senderName = getCurrentName();
+    const senderName = getCurrentName();
     if (!senderName) { openNameModal(); return; }
-    sendBtn.disabled = true;
+    btnEl.disabled = true;
     try {
       const res = await fetch(`/api/shows/${chatShowId}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ senderName, body }),
       });
-      if (res.ok) input.value = '';
+      if (res.ok) inputEl.value = '';
     } catch { /* SSE echo will be missing but the draft stays so nothing is lost */ }
-    sendBtn.disabled = false;
-    input.focus();
+    btnEl.disabled = false;
+    inputEl.focus();
   }
-  sendBtn.addEventListener('click', sendMessage);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  sheetSendBtn.addEventListener('click', () => sendMessage(sheetInput, sheetSendBtn));
+  sheetInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(sheetInput, sheetSendBtn); }
+  });
+  barSendBtn.addEventListener('click', () => sendMessage(barInput, barSendBtn));
+  barInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(barInput, barSendBtn); }
   });
 
-  updateNameChip();
+  updateNameChips();
   showSelect.addEventListener('change', () => setShow(showSelect.value));
   const initialShowId = new URLSearchParams(location.search).get('show') || localStorage.getItem('micplot_show');
   if (initialShowId) setShow(initialShowId);
