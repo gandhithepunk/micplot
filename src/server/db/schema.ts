@@ -93,10 +93,31 @@ export const micPhotos = sqliteTable("mic_photos", {
     .default(sql`(current_timestamp)`),
 });
 
+/** A1/A2 chat, scoped per show. Senders aren't real accounts -- just a
+ * display name the client attaches to each message (see client-side
+ * localStorage identity handling) -- so senderName is free text, not a
+ * foreign key. */
+export const chatMessages = sqliteTable("chat_messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  showId: integer("show_id")
+    .notNull()
+    .references(() => shows.id),
+  senderName: text("sender_name").notNull(),
+  body: text("body").notNull(),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(current_timestamp)`),
+});
+
 // --- relations (for Drizzle's relational query API) ---
 
 export const showsRelations = relations(shows, ({ many }) => ({
   micEntries: many(micEntries),
+  chatMessages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  show: one(shows, { fields: [chatMessages.showId], references: [shows.id] }),
 }));
 
 export const micEntriesRelations = relations(micEntries, ({ one, many }) => ({

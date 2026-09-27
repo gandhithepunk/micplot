@@ -299,6 +299,105 @@
       color: var(--red);
       display: block;
     }
+
+    /* ── Chat ── */
+    .chat-unread-dot {
+      position: absolute; top: -2px; right: -2px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent); display: none;
+    }
+    .chat-unread-dot.show { display: block; }
+    .chat-panel {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 21;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      border-radius: 14px 14px 0 0;
+      max-height: 85vh;
+      display: flex; flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.25s ease;
+    }
+    .chat-panel.open { transform: translateY(0); }
+    .chat-inner {
+      max-width: 580px; width: 100%; margin: 0 auto;
+      display: flex; flex-direction: column; min-height: 0; flex: 1;
+      padding: 1.25rem 1.25rem 0;
+    }
+    .chat-header { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .chat-title { font-size: 1rem; }
+    .chat-header-actions { display: flex; align-items: center; gap: 0.5rem; }
+    .chat-name-chip {
+      background: var(--field); border: 1px solid var(--border-light); color: var(--text-muted);
+      border-radius: 999px; padding: 0.3rem 0.7rem; font-size: 0.8rem;
+      cursor: pointer; font-family: inherit; max-width: 140px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .chat-name-chip:hover { color: var(--text); border-color: var(--border-light); }
+    .chat-close-btn {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text-muted); padding: 0.3rem 0.6rem; cursor: pointer;
+      font-family: inherit; font-size: 0.8rem;
+    }
+    .chat-messages { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem; padding-bottom: 1rem; min-height: 200px; }
+    .chat-empty { color: var(--text-muted); font-size: 0.875rem; text-align: center; margin-top: 2rem; }
+    .chat-msg { max-width: 85%; align-self: flex-start; }
+    .chat-msg.self { align-self: flex-end; }
+    .chat-msg-meta { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.15rem; }
+    .chat-msg.self .chat-msg-meta { text-align: right; }
+    .chat-msg-body {
+      background: var(--field); border: 1px solid var(--border); border-radius: 10px;
+      padding: 0.5rem 0.7rem; font-size: 0.9rem; line-height: 1.35;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .chat-msg.self .chat-msg-body { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .chat-compose {
+      display: flex; gap: 0.5rem; padding: 0.75rem 0;
+      border-top: 1px solid var(--border); background: var(--card);
+      position: sticky; bottom: 0;
+    }
+    .chat-compose textarea {
+      flex: 1; resize: none; background: var(--field); border: 1px solid var(--border-light);
+      border-radius: 8px; color: var(--text); font-family: inherit; font-size: 0.9rem;
+      padding: 0.5rem 0.65rem; max-height: 6rem;
+    }
+    .chat-compose textarea:focus { outline: none; border-color: var(--accent); }
+    .chat-send-btn {
+      background: var(--accent); border: none; color: #fff; border-radius: 8px;
+      padding: 0 1rem; font-family: inherit; font-weight: 500; cursor: pointer;
+    }
+    .chat-send-btn:disabled { opacity: 0.5; cursor: default; }
+    .chat-name-modal {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      z-index: 220; align-items: center; justify-content: center;
+    }
+    .chat-name-modal.open { display: flex; }
+    .chat-name-modal-inner {
+      background: var(--card); border: 1px solid var(--border-light); border-radius: 10px;
+      padding: 1.25rem; width: 90%; max-width: 320px;
+    }
+    .chat-name-modal-inner h3 { font-size: 0.95rem; margin-bottom: 0.75rem; font-weight: 500; }
+    .chat-recent-names { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.75rem; }
+    .chat-recent-name-btn {
+      background: var(--field); border: 1px solid var(--border-light); color: var(--text);
+      border-radius: 999px; padding: 0.3rem 0.7rem; font-size: 0.8rem;
+      cursor: pointer; font-family: inherit;
+    }
+    .chat-recent-name-btn:hover { border-color: var(--accent); }
+    .chat-name-input {
+      width: 100%; background: var(--field); border: 1px solid var(--border-light);
+      border-radius: 6px; color: var(--text); font-family: inherit;
+      padding: 0.5rem 0.65rem; font-size: 0.9rem; margin-bottom: 0.75rem;
+    }
+    .chat-name-input:focus { outline: none; border-color: var(--accent); }
+    .chat-name-actions { display: flex; gap: 0.5rem; }
+    .chat-name-save-btn {
+      flex: 1; background: var(--accent); border: none; color: #fff; border-radius: 6px;
+      padding: 0.5rem; font-family: inherit; font-weight: 500; cursor: pointer;
+    }
+    .chat-name-cancel-btn {
+      background: var(--field); border: 1px solid var(--border); color: var(--text-muted);
+      border-radius: 6px; padding: 0.5rem 0.75rem; font-family: inherit; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -311,12 +410,13 @@
       <option value="">Select a show...</option>
     </select>
     <div class="hamburger-wrap">
-      <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false">☰</button>
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu" aria-expanded="false">☰<span class="chat-unread-dot" id="chat-unread-dot"></span></button>
       <nav class="hamburger-menu" id="hamburger-menu">
         <a href="/mic-form.html" class="nav-link active">Mic Entry</a>
         <a href="/dashboard.html" class="nav-link">Dashboard</a>
         <a href="/admin.html" class="nav-link">Admin</a>
         <div style="height:1px;background:var(--border);margin:0.25rem 0;"></div>
+        <button class="nav-link" id="chat-btn" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;font-family:inherit;">Chat</button>
         <button class="nav-link" id="share-btn" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;font-family:inherit;">Share</button>
       </nav>
     </div>
@@ -873,5 +973,223 @@ document.getElementById('share-btn').addEventListener('click', e => {
     <button onclick="document.getElementById('qr-modal').style.display='none'" style="margin-top:1rem;width:100%;background:var(--field);border:1px solid var(--border);color:var(--text-muted);padding:0.5rem;border-radius:6px;cursor:pointer;font-size:0.875rem;font-family:inherit;">Close</button>
   </div>
 </div>
+
+<!-- Chat -->
+<div class="backdrop" id="chat-backdrop"></div>
+<div class="chat-panel" id="chat-panel" aria-modal="true" role="dialog">
+  <div class="chat-inner">
+    <div class="chat-header">
+      <span class="chat-title">Chat</span>
+      <div class="chat-header-actions">
+        <button class="chat-name-chip" id="chat-name-chip" type="button"></button>
+        <button class="chat-close-btn" id="chat-close-btn" type="button">Close</button>
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-empty" id="chat-empty">No messages yet</div>
+    </div>
+    <div class="chat-compose">
+      <textarea id="chat-input" rows="1" placeholder="Message..." maxlength="2000"></textarea>
+      <button class="chat-send-btn" id="chat-send-btn" type="button">Send</button>
+    </div>
+  </div>
+</div>
+
+<div class="chat-name-modal" id="chat-name-modal">
+  <div class="chat-name-modal-inner">
+    <h3>Who's chatting?</h3>
+    <div class="chat-recent-names" id="chat-recent-names"></div>
+    <input type="text" class="chat-name-input" id="chat-name-input" placeholder="Enter a name" maxlength="60" autocomplete="off" />
+    <div class="chat-name-actions">
+      <button class="chat-name-cancel-btn" id="chat-name-cancel-btn" type="button">Cancel</button>
+      <button class="chat-name-save-btn" id="chat-name-save-btn" type="button">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Chat ─────────────────────────────────────────────────────────────────────
+(function () {
+  const CHAT_NAME_KEY = 'micplot_chat_name';
+  const CHAT_NAMES_KEY = 'micplot_chat_names';
+  const MAX_RECENT_NAMES = 6;
+
+  const showSelect  = document.getElementById('show-select');
+  const panel       = document.getElementById('chat-panel');
+  const backdrop    = document.getElementById('chat-backdrop');
+  const messagesEl  = document.getElementById('chat-messages');
+  const emptyEl     = document.getElementById('chat-empty');
+  const input       = document.getElementById('chat-input');
+  const sendBtn     = document.getElementById('chat-send-btn');
+  const nameChip    = document.getElementById('chat-name-chip');
+  const closeBtn    = document.getElementById('chat-close-btn');
+  const chatBtn     = document.getElementById('chat-btn');
+  const unreadDot   = document.getElementById('chat-unread-dot');
+  const nameModal   = document.getElementById('chat-name-modal');
+  const nameInput   = document.getElementById('chat-name-input');
+  const recentNamesEl  = document.getElementById('chat-recent-names');
+  const nameSaveBtn    = document.getElementById('chat-name-save-btn');
+  const nameCancelBtn  = document.getElementById('chat-name-cancel-btn');
+
+  let chatShowId = null;
+  let messages = [];
+  let evtSource = null;
+
+  function getCurrentName() {
+    return localStorage.getItem(CHAT_NAME_KEY) || '';
+  }
+  function getRecentNames() {
+    try { return JSON.parse(localStorage.getItem(CHAT_NAMES_KEY) || '[]'); } catch { return []; }
+  }
+  function rememberName(name) {
+    localStorage.setItem(CHAT_NAME_KEY, name);
+    const recent = getRecentNames().filter(n => n !== name);
+    recent.unshift(name);
+    localStorage.setItem(CHAT_NAMES_KEY, JSON.stringify(recent.slice(0, MAX_RECENT_NAMES)));
+    updateNameChip();
+  }
+  function updateNameChip() {
+    nameChip.textContent = getCurrentName() || 'Set name';
+  }
+
+  function openNameModal() {
+    recentNamesEl.innerHTML = '';
+    for (const name of getRecentNames()) {
+      const btn = document.createElement('button');
+      btn.className = 'chat-recent-name-btn';
+      btn.type = 'button';
+      btn.textContent = name;
+      btn.addEventListener('click', () => {
+        rememberName(name);
+        nameModal.classList.remove('open');
+        renderMessages();
+      });
+      recentNamesEl.appendChild(btn);
+    }
+    nameInput.value = getCurrentName();
+    nameModal.classList.add('open');
+    nameInput.focus();
+  }
+  nameChip.addEventListener('click', openNameModal);
+  nameCancelBtn.addEventListener('click', () => nameModal.classList.remove('open'));
+  nameSaveBtn.addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) return;
+    rememberName(name);
+    nameModal.classList.remove('open');
+    renderMessages();
+  });
+  nameInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); nameSaveBtn.click(); }
+  });
+
+  function formatTime(createdAt) {
+    try {
+      return new Date(createdAt.replace(' ', 'T') + 'Z').toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    } catch { return ''; }
+  }
+
+  function renderMessages() {
+    messagesEl.querySelectorAll('.chat-msg').forEach(el => el.remove());
+    emptyEl.style.display = messages.length ? 'none' : '';
+    const selfName = getCurrentName();
+    for (const m of messages) {
+      const div = document.createElement('div');
+      div.className = 'chat-msg' + (selfName && m.senderName === selfName ? ' self' : '');
+      const meta = document.createElement('div');
+      meta.className = 'chat-msg-meta';
+      meta.textContent = `${m.senderName} · ${formatTime(m.createdAt)}`;
+      const body = document.createElement('div');
+      body.className = 'chat-msg-body';
+      body.textContent = m.body;
+      div.appendChild(meta);
+      div.appendChild(body);
+      messagesEl.appendChild(div);
+    }
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function openPanel() {
+    if (!chatShowId) return;
+    panel.classList.add('open');
+    backdrop.classList.add('visible');
+    unreadDot.classList.remove('show');
+    setTimeout(() => input.focus(), 250);
+  }
+  function closePanel() {
+    panel.classList.remove('open');
+    backdrop.classList.remove('visible');
+  }
+  chatBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    document.getElementById('hamburger-menu').classList.remove('open');
+    document.getElementById('hamburger-btn').setAttribute('aria-expanded', 'false');
+    openPanel();
+  });
+  closeBtn.addEventListener('click', closePanel);
+  backdrop.addEventListener('click', closePanel);
+
+  async function loadHistory(showId) {
+    try {
+      const res = await fetch(`/api/shows/${showId}/chat`);
+      messages = res.ok ? await res.json() : [];
+    } catch { messages = []; }
+    renderMessages();
+  }
+
+  function connectChatSSE(showId) {
+    if (evtSource) evtSource.close();
+    evtSource = new EventSource(`/api/events?showId=${showId}`);
+    evtSource.addEventListener('message', e => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'chat_message' && String(data.showId) === String(chatShowId)) {
+          messages.push(data.message);
+          renderMessages();
+          if (!panel.classList.contains('open')) unreadDot.classList.add('show');
+        }
+      } catch { /* ignore malformed */ }
+    });
+  }
+
+  function setShow(showId) {
+    chatShowId = showId || null;
+    messages = [];
+    closePanel();
+    unreadDot.classList.remove('show');
+    if (evtSource) { evtSource.close(); evtSource = null; }
+    if (!chatShowId) { renderMessages(); return; }
+    loadHistory(chatShowId);
+    connectChatSSE(chatShowId);
+  }
+
+  async function sendMessage() {
+    const body = input.value.trim();
+    if (!body || !chatShowId) return;
+    let senderName = getCurrentName();
+    if (!senderName) { openNameModal(); return; }
+    sendBtn.disabled = true;
+    try {
+      const res = await fetch(`/api/shows/${chatShowId}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ senderName, body }),
+      });
+      if (res.ok) input.value = '';
+    } catch { /* SSE echo will be missing but the draft stays so nothing is lost */ }
+    sendBtn.disabled = false;
+    input.focus();
+  }
+  sendBtn.addEventListener('click', sendMessage);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  updateNameChip();
+  showSelect.addEventListener('change', () => setShow(showSelect.value));
+  const initialShowId = new URLSearchParams(location.search).get('show') || localStorage.getItem('micplot_show');
+  if (initialShowId) setShow(initialShowId);
+})();
+</script>
 </body>
 </html>

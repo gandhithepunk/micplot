@@ -11,6 +11,7 @@ import { micsRoutes } from "./routes/mics.js";
 import { photosRoutes } from "./routes/photos.js";
 import { eventsRoutes } from "./routes/events.js";
 import { qrRoute } from "./routes/qr.js";
+import { chatRoutes } from "./routes/chat.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 3000);
@@ -45,6 +46,7 @@ await app.register(micsRoutes);
 await app.register(photosRoutes);
 await app.register(eventsRoutes);
 await app.register(qrRoute);
+await app.register(chatRoutes);
 
 app.get("/health", async () => ({ ok: true }));
 

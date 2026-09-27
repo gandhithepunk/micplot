@@ -4,12 +4,7 @@ import type { ServerResponse } from "node:http";
 // showId (as string key) → set of active SSE response streams
 const connections = new Map<string, Set<ServerResponse>>();
 
-/**
- * Broadcast a mics_updated event to all clients watching a given show.
- * Called by mics routes after any write that changes the grid.
- */
-export function broadcastShow(showId: number): void {
-  const payload = `data: ${JSON.stringify({ type: "mics_updated", showId })}\n\n`;
+function broadcast(showId: number, payload: string): void {
   const set = connections.get(String(showId));
   if (!set || set.size === 0) return;
   for (const res of set) {
@@ -19,6 +14,25 @@ export function broadcastShow(showId: number): void {
       set.delete(res);
     }
   }
+}
+
+/**
+ * Broadcast a mics_updated event to all clients watching a given show.
+ * Called by mics routes after any write that changes the grid.
+ */
+export function broadcastShow(showId: number): void {
+  broadcast(showId, `data: ${JSON.stringify({ type: "mics_updated", showId })}\n\n`);
+}
+
+/**
+ * Broadcast a new chat message to all clients watching a given show.
+ * Called by the chat route after every insert.
+ */
+export function broadcastChatMessage(
+  showId: number,
+  message: { id: number; senderName: string; body: string; createdAt: string }
+): void {
+  broadcast(showId, `data: ${JSON.stringify({ type: "chat_message", showId, message })}\n\n`);
 }
 
 export async function eventsRoutes(app: FastifyInstance) {
