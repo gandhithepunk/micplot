@@ -248,6 +248,10 @@
       cursor: pointer;
       position: relative;
       -webkit-tap-highlight-color: transparent;
+      aspect-ratio: 0.85;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
     .mic-card:active { opacity: 0.75; }
     .mic-card.checked { border-color: rgba(63,158,109,0.7); }
@@ -1280,8 +1284,10 @@ document.getElementById('share-btn').addEventListener('click', e => {
           </div>
         </span>
       </div>
-      <div class="card-performer ${m.performer ? '' : 'empty'}">${m.performer || 'No performer'}${m.character ? ` <em style="color:var(--text-muted);font-weight:400">${m.character}</em>` : ''}${allergyDot}</div>
-      <div class="card-pronouns">${m.pronouns || ''}</div>
+      <div class="card-bottom">
+        <div class="card-performer ${m.performer ? '' : 'empty'}">${m.performer || 'No performer'}${m.character ? ` <em style="color:var(--text-muted);font-weight:400">${m.character}</em>` : ''}${allergyDot}</div>
+        <div class="card-pronouns">${m.pronouns || ''}</div>
+      </div>
     `;
 
     // Pill tap: open status dropdown without opening detail panel
