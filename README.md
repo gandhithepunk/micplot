@@ -21,9 +21,20 @@ rebuild as a self-hosted web app.
 - **Auth:** a single shared password for the whole crew (optional — leave
   `APP_PASSWORD` unset to run with no login on a trusted network). This is a
   real seam, not a stub: routes only ever call `requireAuth()`, so swapping
-  in per-user accounts later doesn't touch route code.
+  in per-user accounts later doesn't touch route code. Admin pages are
+  additionally gated by an `ADMIN_PIN` overlay with a server-side session
+  cookie.
+- **Live updates:** dashboard clients subscribe to `/api/events` (Server-Sent
+  Events, `src/server/routes/events.ts`); any write in `mics.ts` broadcasts
+  a `mics_updated` event to everyone watching that show, so the grid
+  refreshes without polling.
 - **Deployment:** Docker + docker-compose. `docker compose up` is the whole
-  install story, on Mac, Linux, or Windows.
+  install story, on Mac, Linux, or Windows. The published image goes to
+  `ghcr.io` on merges to `main`; `deploy/` holds compose files for a
+  Dockge/TrueNAS host (service names avoid hyphens for Dockge compatibility),
+  plus a separate staging compose for the `dev` branch. CI
+  (`.github/workflows/ci.yml`) runs typecheck on every branch, not just
+  `main`/`dev`.
 
 ## Data model
 
@@ -33,8 +44,13 @@ rebuild as a self-hosted web app.
   crew-facing pickers without deleting history.
 - `mic_entries` — one row per **Show + Mic ID** combination. `mic_id` is
   always `TEXT`, never inferred as a number (leading zeros like `"01"` must
-  round-trip exactly).
+  round-trip exactly). Fields cover performer, character, pronouns, mic
+  color/placement/sensitivity, mic model/frequency/pack model, allergy flag,
+  notes, and status (`not_started` / `miced` / `checked`, dashboard-only).
 - `mic_photos` — multiple photos per mic entry.
+- `shows.fieldConfig` — nullable per-show JSON that toggles which fields
+  appear on the entry form and dashboard (null = all fields on, for backward
+  compat with shows created before this existed).
 
 See `src/server/db/schema.ts` for the full schema with field-level comments.
 
@@ -68,31 +84,36 @@ src/
       index.ts         # DB connection
       migrate.ts        # migration runner + default-org seed
     routes/
-      shows.ts          # admin show list
+      shows.ts          # admin show list, per-show field config
       mics.ts            # core mic-entry CRUD, mic switcher, status toggle
       photos.ts           # photo upload/serve
+      events.ts             # SSE broadcast for live dashboard updates
+      qr.ts                   # QR code generation for the share link
       auth.ts               # login/logout
     auth.ts             # shared-password session middleware
     storage.ts          # photo storage abstraction
     index.ts            # Fastify app + route wiring
   client/
-    index.html          # placeholder — build the entry form + dashboard here
+    index.html          # landing/redirect page
+    mic-form.html         # mic entry form
+    dashboard.html          # live status grid: search/filter, photo gallery, edit panel
+    admin.html                 # shows CRUD, field config, bulk mic generation, PIN gate
+    manifest.json, icon.svg    # PWA support
 ```
 
 ## What's built vs. what's next
 
 **Built:** the full API (shows, mic entries, mic switcher lookup, photo
-upload/serve, status toggle, shared-password auth), the database schema, and
-a working Docker deploy.
+upload/serve, status toggle, shared-password + admin-PIN auth, SSE live
+updates), the database schema and migrations, and the full frontend — mic
+entry form, dashboard (search/filter/edit panel/photo management, per-show
+field config), and admin panel (show setup, bulk mic generation, archive
+state). Also built: hamburger nav across all pages, QR-code share button,
+PWA install support, and a working Docker deploy publishing to `ghcr.io`
+with staging/production compose files for a Dockge/TrueNAS host.
 
-**Not built yet:** the actual frontend — the mic entry form and the
-dashboard described in the project handoff doc. `src/client/index.html` is
-currently just a placeholder proving the server/static-file loop works.
-
-Suggested next step: build the mic entry form as a vertical slice first (it's
-simpler than the dashboard) to validate the full round trip — form → API →
-DB → back — before tackling the dashboard's search/filter/auto-refresh/photo
-gallery.
+**Not built yet:** nothing tracked in this README — check open issues/PRs on
+the `dev` branch for the current work-in-progress state.
 
 ## Design system reference
 
