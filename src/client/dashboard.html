@@ -695,7 +695,12 @@
     }
 
     /* ── Chat top bar (collapsible, dashboard-only) ── */
-    .chat-topbar-wrap { position: relative; border-bottom: 1px solid var(--border); }
+    .chat-topbar-wrap { position: relative; z-index: 16; border-bottom: 1px solid var(--border); background: var(--bg); }
+    .chat-topbar-backdrop {
+      display: none;
+      position: fixed; inset: 0; z-index: 14;
+    }
+    .chat-topbar-backdrop.visible { display: block; }
     .chat-topbar-collapsed {
       display: flex; align-items: center; gap: 0.5rem; width: 100%;
       max-width: 900px; margin: 0 auto;
@@ -766,6 +771,7 @@
 </div>
 
 <!-- Chat top bar (collapsed preview, expands on tap, collapses on tap-out) -->
+<div class="chat-topbar-backdrop" id="chat-topbar-backdrop"></div>
 <div class="chat-topbar-wrap" id="chat-topbar-wrap">
   <button class="chat-topbar-collapsed" id="chat-topbar-collapsed" type="button">
     <span class="chat-topbar-label">Chat</span>
@@ -1861,6 +1867,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
 
   // Top bar (collapsed preview, expands on tap, collapses on tap-out)
   const barWrap       = document.getElementById('chat-topbar-wrap');
+  const barBackdrop   = document.getElementById('chat-topbar-backdrop');
   const barCollapsed  = document.getElementById('chat-topbar-collapsed');
   const barPreview    = document.getElementById('chat-topbar-preview');
   const barDot        = document.getElementById('chat-topbar-unread-dot');
@@ -2016,10 +2023,14 @@ document.getElementById('share-btn').addEventListener('click', e => {
   sheetBackdrop.addEventListener('click', closeSheet);
 
   // ── Top bar expand/collapse (tap in to open, tap outside to close) ──────
+  // A full-viewport backdrop sits behind the widget while expanded so a
+  // tap-out is consumed closing the chat, not passed through to whatever's
+  // underneath (e.g. a mic card).
   function openBar() {
     if (!chatShowId) return;
     closeSheet();
     barWrap.classList.add('expanded');
+    barBackdrop.classList.add('visible');
     markSeen();
     // scrollTop set while display:none doesn't stick -- re-apply now that
     // the container has real layout dimensions.
@@ -2028,15 +2039,14 @@ document.getElementById('share-btn').addEventListener('click', e => {
   }
   function closeBar() {
     barWrap.classList.remove('expanded');
+    barBackdrop.classList.remove('visible');
   }
   barCollapsed.addEventListener('click', e => {
     e.stopPropagation();
     if (barWrap.classList.contains('expanded')) closeBar();
     else openBar();
   });
-  document.addEventListener('click', e => {
-    if (!barWrap.contains(e.target) && !nameModal.contains(e.target)) closeBar();
-  });
+  barBackdrop.addEventListener('click', closeBar);
 
   // ── History / SSE / show tracking ────────────────────────────────────────
   async function loadHistory(showId) {
