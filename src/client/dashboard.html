@@ -2021,6 +2021,9 @@ document.getElementById('share-btn').addEventListener('click', e => {
     closeSheet();
     barWrap.classList.add('expanded');
     markSeen();
+    // scrollTop set while display:none doesn't stick -- re-apply now that
+    // the container has real layout dimensions.
+    barMessages.scrollTop = barMessages.scrollHeight;
     setTimeout(() => barInput.focus(), 150);
   }
   function closeBar() {
