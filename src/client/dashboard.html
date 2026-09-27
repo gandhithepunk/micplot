@@ -1702,7 +1702,6 @@ document.getElementById('share-btn').addEventListener('click', e => {
       const updated = await res.json();
 
       // Upload any queued photos
-      let finalPhotos = [...editSavedPhotos];
       if (editPendingPhotos.length > 0) {
         const fd = new FormData();
         for (const file of editPendingPhotos) fd.append('file', file);
@@ -1713,23 +1712,10 @@ document.getElementById('share-btn').addEventListener('click', e => {
         } catch { /* timed out or network error */ }
         clearTimeout(timer);
         editPendingPhotos = [];
-        const refreshRes = await fetch(`/api/shows/${currentShowId}/mics/${encodeURIComponent(updated.micId)}`);
-        if (refreshRes.ok) finalPhotos = (await refreshRes.json()).photos || [];
       }
 
-      // After an Add Mic save, transition straight into editing the entry
-      // that was just created -- same screen, now with real data.
-      addMode = false;
-      detailData = { ...updated, photos: finalPhotos };
-      detailMicIdEl.textContent = detailData.micId;
-      detailMicIdEl.style.display = '';
-      addMicIdInput.style.display = 'none';
-      statusToggle.style.display = '';
-      updateStatusButtons(detailData.status);
-      populateEditForm(detailData);
-      deleteSection.style.display = '';
-      deleteConfirm.style.display = 'none';
-      saveStatus.textContent = 'Saved.';
+      // Save closes the card; Close (no save) is the only other way out.
+      closePanel();
     } catch {
       saveStatus.textContent = 'Save failed.';
       saveStatus.className = 'save-status error';
