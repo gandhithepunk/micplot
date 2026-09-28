@@ -260,7 +260,7 @@
       flex-direction: column;
       justify-content: space-between;
     }
-    .mic-card:active { opacity: 0.75; }
+    .mic-card.pressing { opacity: 0.75; }
     .mic-card.checked { border-color: rgba(63,158,109,0.7); }
     .mic-card.has-cover-photo {
       background-size: cover;
@@ -1406,6 +1406,10 @@ document.getElementById('share-btn').addEventListener('click', e => {
     let longPressStart = null;
     div.addEventListener('pointerdown', e => {
       if (e.target.closest('.pill-wrap')) return; // pill has its own tap behavior
+      // Brief press feedback -- timed, not CSS :active, so it doesn't sit
+      // dimmed for the whole hold on a long-press.
+      div.classList.add('pressing');
+      setTimeout(() => div.classList.remove('pressing'), 150);
       longPressFired = false;
       longPressStart = { x: e.clientX, y: e.clientY };
       longPressTimer = setTimeout(() => {
