@@ -31,12 +31,27 @@ export function createSession(): string {
 
 export function requireAuth(request: FastifyRequest, reply: FastifyReply, done: () => void) {
   if (!APP_PASSWORD) return done();
+  if (hasValidApiToken(request)) return done();
   const token = request.cookies[COOKIE_NAME];
   if (token && sessions.has(token)) return done();
   reply.code(401).send({ error: "Not authenticated" });
 }
 
 export { COOKIE_NAME };
+
+// ── API token auth (for machine clients, e.g. a Bitfocus Companion module) ──
+// Same "leave blank to disable" pattern as APP_PASSWORD/ADMIN_PIN. Checked
+// in requireAuth as an alternative to the cookie session -- grants the same
+// crew-level access. No login flow: a machine client just sends the header
+// on every request, since it can't do the interactive password step.
+const API_TOKEN = process.env.API_TOKEN ?? "";
+
+function hasValidApiToken(request: FastifyRequest): boolean {
+  if (!API_TOKEN) return false;
+  const header = request.headers.authorization;
+  if (!header?.startsWith("Bearer ")) return false;
+  return header.slice("Bearer ".length) === API_TOKEN;
+}
 
 // ── Admin auth (ADMIN_PIN) ────────────────────────────────────────────────────
 const ADMIN_PIN = process.env.ADMIN_PIN ?? "";

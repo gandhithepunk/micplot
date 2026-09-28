@@ -6,6 +6,7 @@ services:
     environment:
       - APP_PASSWORD=
       - ADMIN_PIN=
+      - API_TOKEN=
       - DATABASE_PATH=/app/data/mic-plot.db
       - PHOTOS_DIR=/app/photos
     volumes:

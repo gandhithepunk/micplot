@@ -9,6 +9,9 @@ services:
       APP_PASSWORD: ${APP_PASSWORD:-}
       # 4-6 digit PIN that gates the admin panel. Leave blank for open access.
       ADMIN_PIN: ${ADMIN_PIN:-}
+      # Shared secret for machine clients (e.g. a Companion module) that
+      # can't log in interactively. Leave blank to not offer this auth path.
+      API_TOKEN: ${API_TOKEN:-}
       DATABASE_PATH: /app/data/mic-plot.db
       PHOTOS_DIR: /app/photos
     volumes:

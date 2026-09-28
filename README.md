@@ -23,7 +23,11 @@ rebuild as a self-hosted web app.
   real seam, not a stub: routes only ever call `requireAuth()`, so swapping
   in per-user accounts later doesn't touch route code. Admin pages are
   additionally gated by an `ADMIN_PIN` overlay with a server-side session
-  cookie.
+  cookie. For machine clients that can't do an interactive login (e.g. a
+  future Bitfocus Companion module), an optional `API_TOKEN` is checked in
+  `requireAuth()` as an alternative to the cookie session — send
+  `Authorization: Bearer <token>` on every request. Same "blank disables it"
+  pattern as `APP_PASSWORD`/`ADMIN_PIN`.
 - **Live updates:** dashboard clients subscribe to `/api/events` (Server-Sent
   Events, `src/server/routes/events.ts`); any write in `mics.ts` broadcasts
   a `mics_updated` event to everyone watching that show, so the grid
