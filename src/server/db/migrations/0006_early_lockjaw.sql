@@ -1,0 +1,1 @@
+ALTER TABLE `mic_entries` ADD `flag_type` text;

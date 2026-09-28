@@ -43,6 +43,13 @@
       "when": 1790547507741,
       "tag": "0005_even_king_cobra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1790621152328,
+      "tag": "0006_early_lockjaw",
+      "breakpoints": true
     }
   ]
 }

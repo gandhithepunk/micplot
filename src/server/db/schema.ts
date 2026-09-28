@@ -69,6 +69,11 @@ export const micEntries = sqliteTable(
       .notNull()
       .default("not_started"),
 
+    // "Please check" alert -- set via long-press on the dashboard card,
+    // independent of status. Null means no active alert. Flashes the
+    // card's border until cleared (set back to null) from the same menu.
+    flagType: text("flag_type", { enum: ["rf_issue", "element_issue", "lost_signal"] }),
+
     updatedAt: text("updated_at")
       .notNull()
       .default(sql`(current_timestamp)`),

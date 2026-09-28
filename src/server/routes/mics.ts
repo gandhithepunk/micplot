@@ -206,6 +206,25 @@ export async function micsRoutes(app: FastifyInstance) {
     return row;
   });
 
+  // "Please check" alert: long-press on the dashboard card sets or clears
+  // this, independent of status. flagType: null clears the alert.
+  app.patch("/api/mics/:id/flag", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { flagType } = request.body as { flagType: "rf_issue" | "element_issue" | "lost_signal" | null };
+    if (flagType !== null && !["rf_issue", "element_issue", "lost_signal"].includes(flagType)) {
+      return reply.code(400).send({ error: "Invalid flagType" });
+    }
+    const row = db
+      .update(micEntries)
+      .set({ flagType })
+      .where(eq(micEntries.id, Number(id)))
+      .returning()
+      .get();
+    if (!row) return reply.code(404).send({ error: "Mic entry not found" });
+    broadcastShow(row.showId);
+    return row;
+  });
+
   // Choose which photo shows as the card background on the dashboard.
   // photoId: null clears the explicit choice (falls back to first photo).
   app.patch("/api/mics/:id/cover-photo", async (request, reply) => {

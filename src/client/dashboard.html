@@ -20,6 +20,9 @@
       --accent: #7a5cf0;
       --green: #3f9e6d;
       --red: #c25b52;
+      --flag-rf: #d9a441;
+      --flag-element: #d97a3f;
+      --flag-lost: #c25b52;
       --text: #eaeaea;
       --text-muted: #888888;
     }
@@ -248,6 +251,8 @@
       cursor: pointer;
       position: relative;
       -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      user-select: none;
       aspect-ratio: 0.85;
       display: flex;
       flex-direction: column;
@@ -265,6 +270,13 @@
       text-shadow: 0 1px 3px rgba(0,0,0,0.85);
     }
     .mic-card.miced   { border-color: rgba(122,92,240,0.7); }
+
+    /* "Please check" alert -- flashes the border until cleared, overriding
+       the status border color while active. */
+    @keyframes flag-flash { 0%, 49% { border-color: var(--flag-color); } 50%, 100% { border-color: var(--border); } }
+    .mic-card.flag-rf_issue      { --flag-color: var(--flag-rf);      animation: flag-flash 1s steps(1, end) infinite; }
+    .mic-card.flag-element_issue { --flag-color: var(--flag-element); animation: flag-flash 1s steps(1, end) infinite; }
+    .mic-card.flag-lost_signal   { --flag-color: var(--flag-lost);    animation: flag-flash 1s steps(1, end) infinite; }
 
     .card-top {
       display: flex;
@@ -605,6 +617,42 @@
     .clear-status-confirm-btn:hover { opacity: 0.85; }
     .clear-status-confirm-btn:disabled { opacity: 0.5; cursor: default; }
 
+    /* ── Flag ("please check") long-press menu ── */
+    .flag-modal {
+      display: none;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      z-index: 220; align-items: center; justify-content: center;
+    }
+    .flag-modal.open { display: flex; }
+    .flag-modal-inner {
+      background: var(--card); border: 1px solid var(--border-light); border-radius: 10px;
+      padding: 1.25rem; width: 90%; max-width: 320px;
+    }
+    .flag-modal-inner h3 { font-size: 0.95rem; margin-bottom: 0.9rem; font-weight: 500; }
+    .flag-option-btn {
+      display: flex; align-items: center; gap: 0.6rem; width: 100%;
+      background: var(--field); border: 1px solid var(--border-light); border-radius: 6px;
+      color: var(--text); font-family: inherit; font-weight: 500; font-size: 0.9rem;
+      padding: 0.65rem 0.85rem; margin-bottom: 0.5rem; cursor: pointer;
+    }
+    .flag-option-btn:hover { border-color: var(--border-light); background: rgba(255,255,255,0.04); }
+    .flag-option-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .flag-option-rf .flag-option-dot { background: var(--flag-rf); }
+    .flag-option-element .flag-option-dot { background: var(--flag-element); }
+    .flag-option-lost .flag-option-dot { background: var(--flag-lost); }
+    .flag-clear-btn {
+      display: block; width: 100%;
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      color: var(--green); font-family: inherit; font-weight: 500; font-size: 0.9rem;
+      padding: 0.65rem 0.85rem; margin-bottom: 0.75rem; cursor: pointer;
+    }
+    .flag-clear-btn:hover { border-color: var(--green); }
+    .flag-cancel-btn {
+      display: block; width: 100%;
+      background: var(--field); border: 1px solid var(--border); color: var(--text-muted);
+      border-radius: 6px; padding: 0.6rem; font-family: inherit; cursor: pointer;
+    }
+
     /* Add-mode mic ID input in panel header */
     .add-mic-id-input {
       font-size: 2.25rem;
@@ -877,6 +925,24 @@
       <button class="clear-status-cancel-btn" id="clear-status-cancel-btn" type="button">Cancel</button>
       <button class="clear-status-confirm-btn" id="clear-status-confirm-btn" type="button">Clear Status</button>
     </div>
+  </div>
+</div>
+
+<!-- Flag ("please check") long-press menu -->
+<div class="flag-modal" id="flag-modal">
+  <div class="flag-modal-inner">
+    <h3 id="flag-modal-title">Flag mic</h3>
+    <button class="flag-option-btn flag-option-rf" data-flag="rf_issue" type="button">
+      <span class="flag-option-dot"></span> RF Issue
+    </button>
+    <button class="flag-option-btn flag-option-element" data-flag="element_issue" type="button">
+      <span class="flag-option-dot"></span> Element Issue
+    </button>
+    <button class="flag-option-btn flag-option-lost" data-flag="lost_signal" type="button">
+      <span class="flag-option-dot"></span> Lost Signal
+    </button>
+    <button class="flag-clear-btn" id="flag-clear-btn" type="button" style="display:none">Clear (Addressed)</button>
+    <button class="flag-cancel-btn" id="flag-cancel-btn" type="button">Cancel</button>
   </div>
 </div>
 
@@ -1266,6 +1332,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
       const url = `/api/photos/${encodeURIComponent(m.coverPhotoFilename)}`;
       div.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,0.25), rgba(0,0,0,0.8)), url('${url}')`;
     }
+    if (m.flagType) div.classList.add(`flag-${m.flagType}`);
 
     const pillClass = { not_started: 'pill-not-started', miced: 'pill-miced', checked: 'pill-checked' }[m.status];
     const pillLabel = { not_started: 'Not Started', miced: "Mic'd", checked: 'Checked' }[m.status];
@@ -1329,7 +1396,42 @@ document.getElementById('share-btn').addEventListener('click', e => {
       });
     });
 
-    div.addEventListener('click', () => openDetail(m.micId));
+    // Long-press: open the "please check" flag menu instead of the detail
+    // panel. A completed long-press suppresses the click that follows it
+    // when the finger/mouse lifts.
+    let longPressTimer = null;
+    let longPressFired = false;
+    let longPressStart = null;
+    div.addEventListener('pointerdown', e => {
+      if (e.target.closest('.pill-wrap')) return; // pill has its own tap behavior
+      longPressFired = false;
+      longPressStart = { x: e.clientX, y: e.clientY };
+      longPressTimer = setTimeout(() => {
+        longPressFired = true;
+        openFlagModal(m);
+      }, 500);
+    });
+    div.addEventListener('pointermove', e => {
+      if (!longPressTimer || !longPressStart) return;
+      const dx = e.clientX - longPressStart.x;
+      const dy = e.clientY - longPressStart.y;
+      if (Math.sqrt(dx * dx + dy * dy) > 10) {
+        clearTimeout(longPressTimer);
+        longPressTimer = null;
+      }
+    });
+    div.addEventListener('pointerup', () => {
+      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    });
+    div.addEventListener('pointercancel', () => {
+      if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    });
+    div.addEventListener('contextmenu', e => e.preventDefault());
+
+    div.addEventListener('click', () => {
+      if (longPressFired) { longPressFired = false; return; }
+      openDetail(m.micId);
+    });
     return div;
   }
 
@@ -1628,6 +1730,50 @@ document.getElementById('share-btn').addEventListener('click', e => {
     clearStatusConfirmBtn.textContent = 'Clear Status';
     clearStatusModal.classList.remove('open');
   });
+
+  // ── Flag ("please check") menu ───────────────────────────────────────────
+  const flagModal      = document.getElementById('flag-modal');
+  const flagModalTitle = document.getElementById('flag-modal-title');
+  const flagClearBtn   = document.getElementById('flag-clear-btn');
+  const flagCancelBtn  = document.getElementById('flag-cancel-btn');
+
+  let flagTargetMic = null;
+
+  function openFlagModal(m) {
+    flagTargetMic = m;
+    flagModalTitle.textContent = `Flag Mic ${m.micId}`;
+    flagClearBtn.style.display = m.flagType ? '' : 'none';
+    flagModal.classList.add('open');
+  }
+  function closeFlagModal() {
+    flagModal.classList.remove('open');
+    flagTargetMic = null;
+  }
+  flagCancelBtn.addEventListener('click', closeFlagModal);
+  flagModal.addEventListener('click', e => {
+    if (e.target === flagModal) closeFlagModal();
+  });
+
+  async function setMicFlag(flagType) {
+    if (!flagTargetMic) return;
+    try {
+      const res = await fetch(`/api/mics/${flagTargetMic.id}/flag`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flagType }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        const idx = mics.findIndex(mic => mic.id === updated.id);
+        if (idx !== -1) { mics[idx] = updated; renderCards(); }
+      }
+    } catch { /* silent */ }
+    closeFlagModal();
+  }
+  document.querySelectorAll('.flag-option-btn').forEach(btn => {
+    btn.addEventListener('click', () => setMicFlag(btn.dataset.flag));
+  });
+  flagClearBtn.addEventListener('click', () => setMicFlag(null));
 
   function openAddPanel() {
     if (!currentShowId) return;
