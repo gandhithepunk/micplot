@@ -15,6 +15,25 @@ export const orgs = sqliteTable("orgs", {
 });
 
 /**
+ * Single-row table (id always 1, same convention as orgs) holding the
+ * GUI-editable overrides for the env-var secrets in auth.ts. A non-null
+ * value here always wins over the matching env var; the env var stays a
+ * working bootstrap/recovery path even after the Admin panel has been used.
+ * appPassword/adminPin are plaintext (an admin can look them up to tell
+ * someone); apiTokenHash is a one-way scrypt hash -- the plaintext token is
+ * only ever shown once, at generation time.
+ */
+export const appSettings = sqliteTable("app_settings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  appPassword: text("app_password"),
+  adminPin: text("admin_pin"),
+  apiTokenHash: text("api_token_hash"),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`(current_timestamp)`),
+});
+
+/**
  * Admin-managed list of shows. `active` drives crew-facing pickers;
  * retired shows stay in the DB so their mic history is never lost.
  */

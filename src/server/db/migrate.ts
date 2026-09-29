@@ -1,6 +1,6 @@
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import { db, sqlite } from "./index.js";
-import { orgs } from "./schema.js";
+import { orgs, appSettings } from "./schema.js";
 import { eq } from "drizzle-orm";
 
 // If a column was previously added manually (outside of Drizzle), the column
@@ -68,6 +68,15 @@ const existing = db.select().from(orgs).where(eq(orgs.id, 1)).get();
 if (!existing) {
   db.insert(orgs).values({ id: 1, name: "Default Org" }).run();
   console.log("Seeded default org (id=1).");
+}
+
+// Single settings row (id=1) holding Admin-panel overrides for the
+// APP_PASSWORD/ADMIN_PIN/API_TOKEN env vars. All-null until an admin sets
+// something via Admin > Server Access.
+const existingSettings = db.select().from(appSettings).where(eq(appSettings.id, 1)).get();
+if (!existingSettings) {
+  db.insert(appSettings).values({ id: 1 }).run();
+  console.log("Seeded default app settings row (id=1).");
 }
 
 console.log("Migrations complete.");

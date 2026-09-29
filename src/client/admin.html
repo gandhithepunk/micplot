@@ -226,6 +226,30 @@
 
     .row-msg { margin-top: 0.4rem; font-size: 0.78rem; color: var(--red); min-height: 1em; }
 
+    /* Server Access */
+    .access-field { margin-bottom: 1.1rem; }
+    .access-field:last-of-type { margin-bottom: 0; }
+    .access-field-label { font-size: 0.82rem; color: var(--text); margin-bottom: 0.4rem; font-weight: 500; }
+    .access-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+    .access-input {
+      flex: 1; min-width: 160px;
+      background: var(--field); border: 1px solid var(--border-light); border-radius: 6px;
+      color: var(--text); font-family: inherit; font-weight: 500; font-size: 0.9rem;
+      padding: 0.5rem 0.65rem;
+    }
+    .access-input:focus { outline: none; border-color: var(--accent); }
+    .access-status { font-size: 0.82rem; color: var(--text-muted); flex: 1; }
+    .access-token-reveal {
+      margin-top: 0.6rem; padding: 0.75rem;
+      background: rgba(63,158,109,0.07); border: 1px solid rgba(63,158,109,0.25); border-radius: 6px;
+    }
+    .access-token-reveal-label { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .access-token-value {
+      display: block; word-break: break-all;
+      background: var(--field); border: 1px solid var(--border); border-radius: 5px;
+      padding: 0.5rem 0.65rem; font-size: 0.82rem; color: var(--green); margin-bottom: 0.5rem;
+    }
+
     .empty-list { font-size: 0.875rem; color: var(--text-muted); padding: 0.25rem 0; }
 
     /* Hidden until populated */
@@ -471,6 +495,50 @@
     <div class="shows-list" id="archived-list"></div>
   </div>
 
+  <!-- Server Access -->
+  <div class="section">
+    <div class="section-label">Server Access</div>
+    <div class="section-note">
+      Overrides the APP_PASSWORD/ADMIN_PIN/API_TOKEN environment variables --
+      takes effect immediately, no restart needed. Clearing a field falls
+      back to the environment variable, if one is set.
+    </div>
+
+    <div class="access-field">
+      <div class="access-field-label">Crew Password</div>
+      <div class="access-row">
+        <input type="text" id="access-app-password" class="access-input"
+               placeholder="Blank = open access, no login" autocomplete="off" />
+        <button class="btn-sm" id="access-app-password-save" type="button">Save</button>
+      </div>
+    </div>
+
+    <div class="access-field">
+      <div class="access-field-label">Admin PIN</div>
+      <div class="access-row">
+        <input type="text" id="access-admin-pin" class="access-input"
+               placeholder="Blank = admin panel open, no PIN" autocomplete="off" />
+        <button class="btn-sm" id="access-admin-pin-save" type="button">Save</button>
+      </div>
+    </div>
+
+    <div class="access-field">
+      <div class="access-field-label">API Token (Stream Deck / Companion)</div>
+      <div class="access-row">
+        <span class="access-status" id="access-token-status">Loading...</span>
+        <button class="btn-sm" id="access-token-generate" type="button">Generate New</button>
+        <button class="btn-sm btn-delete-show" id="access-token-clear" type="button" style="display:none">Clear</button>
+      </div>
+      <div class="access-token-reveal" id="access-token-reveal" style="display:none">
+        <div class="access-token-reveal-label">New token -- copy it now, it won't be shown again:</div>
+        <code class="access-token-value" id="access-token-value"></code>
+        <button class="btn-sm" id="access-token-copy" type="button">Copy</button>
+      </div>
+    </div>
+
+    <div class="form-msg" id="access-msg"></div>
+  </div>
+
 </div>
 <script>
 // ── Hamburger menu ───────────────────────────────────────────────────────────
@@ -509,6 +577,7 @@ document.getElementById('share-btn').addEventListener('click', e => {
   function reveal() {
     overlay.classList.remove('visible');
     content.style.display = 'block';
+    initServerAccess();
   }
 
   function showOverlay() {
@@ -547,6 +616,113 @@ document.getElementById('share-btn').addEventListener('click', e => {
   pinBtn.addEventListener('click', submitPin);
   pinInput.addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
 })();
+
+// ── Server Access ─────────────────────────────────────────────────────────────
+// Called from reveal() above, once the admin panel is actually visible.
+function initServerAccess() {
+  const appPasswordInput = document.getElementById('access-app-password');
+  const appPasswordSave  = document.getElementById('access-app-password-save');
+  const adminPinInput    = document.getElementById('access-admin-pin');
+  const adminPinSave     = document.getElementById('access-admin-pin-save');
+  const tokenStatus      = document.getElementById('access-token-status');
+  const tokenGenerate    = document.getElementById('access-token-generate');
+  const tokenClear       = document.getElementById('access-token-clear');
+  const tokenReveal      = document.getElementById('access-token-reveal');
+  const tokenValue       = document.getElementById('access-token-value');
+  const tokenCopy        = document.getElementById('access-token-copy');
+  const msg              = document.getElementById('access-msg');
+
+  function showMsg(text, isError) {
+    msg.textContent = text;
+    msg.className = 'form-msg ' + (isError ? 'error' : 'success');
+    if (!isError) setTimeout(() => { msg.textContent = ''; msg.className = 'form-msg'; }, 3000);
+  }
+
+  async function refresh() {
+    try {
+      const res = await fetch('/api/admin/settings');
+      if (!res.ok) return;
+      const status = await res.json();
+      appPasswordInput.value = status.appPassword;
+      adminPinInput.value = status.adminPin;
+      tokenStatus.textContent = status.apiTokenSet ? 'Set' : 'Not set';
+      tokenClear.style.display = status.apiTokenSet ? '' : 'none';
+    } catch { /* silent */ }
+  }
+
+  appPasswordSave.addEventListener('click', async () => {
+    appPasswordSave.disabled = true;
+    const value = appPasswordInput.value.trim();
+    try {
+      const res = await fetch('/api/admin/settings/app-password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: value || null }),
+      });
+      if (!res.ok) throw new Error();
+      showMsg(value ? 'Crew password saved.' : 'Crew password cleared -- falling back to APP_PASSWORD env var (if set).', false);
+    } catch {
+      showMsg('Failed to save crew password.', true);
+    }
+    appPasswordSave.disabled = false;
+  });
+
+  adminPinSave.addEventListener('click', async () => {
+    adminPinSave.disabled = true;
+    const value = adminPinInput.value.trim();
+    try {
+      const res = await fetch('/api/admin/settings/admin-pin', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: value || null }),
+      });
+      if (!res.ok) throw new Error();
+      showMsg(value ? 'Admin PIN saved.' : 'Admin PIN cleared -- falling back to ADMIN_PIN env var (if set).', false);
+    } catch {
+      showMsg('Failed to save admin PIN.', true);
+    }
+    adminPinSave.disabled = false;
+  });
+
+  tokenGenerate.addEventListener('click', async () => {
+    tokenGenerate.disabled = true;
+    try {
+      const res = await fetch('/api/admin/settings/api-token/generate', { method: 'POST' });
+      if (!res.ok) throw new Error();
+      const { token } = await res.json();
+      tokenValue.textContent = token;
+      tokenReveal.style.display = '';
+      await refresh();
+      showMsg('New API token generated.', false);
+    } catch {
+      showMsg('Failed to generate API token.', true);
+    }
+    tokenGenerate.disabled = false;
+  });
+
+  tokenClear.addEventListener('click', async () => {
+    tokenClear.disabled = true;
+    try {
+      const res = await fetch('/api/admin/settings/api-token', { method: 'DELETE' });
+      if (!res.ok) throw new Error();
+      tokenReveal.style.display = 'none';
+      await refresh();
+      showMsg('API token cleared.', false);
+    } catch {
+      showMsg('Failed to clear API token.', true);
+    }
+    tokenClear.disabled = false;
+  });
+
+  tokenCopy.addEventListener('click', () => {
+    navigator.clipboard.writeText(tokenValue.textContent).then(() => {
+      tokenCopy.textContent = 'Copied!';
+      setTimeout(() => { tokenCopy.textContent = 'Copy'; }, 1500);
+    }).catch(() => {});
+  });
+
+  refresh();
+}
 
 (function () {
   let shows = [];
